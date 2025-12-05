@@ -1,0 +1,19 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Go Gin API server - Turborepo polyglot integration",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/dev.js",
+    "start": "./tmp/main",
+    "test": "node scripts/test.js",
+    "lint": "go vet ./...",
+    "clean": "rimraf tmp",
+    "tidy": "go mod tidy",
+    "fmt": "go fmt ./..."
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
+}

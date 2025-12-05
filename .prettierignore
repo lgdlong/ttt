@@ -1,0 +1,9 @@
+# Ignore patterns for Prettier
+node_modules/
+dist/
+build/
+tmp/
+.turbo/
+coverage/
+pnpm-lock.yaml
+*.go

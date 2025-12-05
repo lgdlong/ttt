@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run Turborepo build for all workspaces
+echo "📦 Building all packages (React + Go)..."
+pnpm turbo run build
+
+# Check if build succeeded
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed! Commit rejected."
+  echo "   Please fix the errors above before committing."
+  exit 1
+fi
+
+echo "✅ All builds passed! Proceeding with commit..."

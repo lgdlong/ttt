@@ -1,0 +1,47 @@
+# =============================================================================
+# Docker Compose - Development Override
+# =============================================================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Frontend - Development with Hot Reload
+  # ===========================================================================
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: ttt-web-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8080
+    command: pnpm dev --host
+
+  # ===========================================================================
+  # Backend - Development with Hot Reload (Air)
+  # ===========================================================================
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: ttt-api-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./apps/api:/app
+    environment:
+      - APP_ENV=development
+      - PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-ttt_db}
+      - DB_USER=${DB_USER:-ttt_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ttt_password}
+      - DB_SSLMODE=disable
+    command: go run github.com/air-verse/air@latest -c .air.toml

@@ -1,0 +1,105 @@
+# =============================================================================
+# Docker Compose - Production-Ready Monorepo
+# =============================================================================
+# Usage:
+#   Development: docker compose up -d
+#   Production:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   Build:       docker compose build
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Frontend - React + Vite
+  # ===========================================================================
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: ttt-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - ttt-network
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================================================
+  # Backend - Go + Gin
+  # ===========================================================================
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: ttt-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=production
+      - PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-ttt_db}
+      - DB_USER=${DB_USER:-ttt_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ttt_password}
+      - DB_SSLMODE=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ttt-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================================================
+  # Database - PostgreSQL
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ttt-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${DB_NAME:-ttt_db}
+      - POSTGRES_USER=${DB_USER:-ttt_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-ttt_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ttt-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ttt_user} -d ${DB_NAME:-ttt_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  ttt-network:
+    driver: bridge
