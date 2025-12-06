@@ -12,6 +12,19 @@ build:
 # Run the application
 run:
 	@go run cmd/api/main.go
+
+# Run database migrations
+migrate:
+	@go run cmd/migrate/main/main.go -action=up
+
+# Check migration status
+migrate-status:
+	@go run cmd/migrate/main/main.go -action=status
+
+# Rollback migrations
+migrate-down:
+	@go run cmd/migrate/main/main.go -action=down
+
 # Create DB container
 docker-run:
 	@docker compose up --build
@@ -46,4 +59,4 @@ watch:
 		Write-Output 'Watching...'; \
 	}"
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+.PHONY: all build run test clean watch docker-run docker-down itest migrate migrate-status migrate-down
