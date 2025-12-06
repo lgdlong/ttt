@@ -9,8 +9,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/joho/godotenv"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 // Service represents a service that interacts with a database.
@@ -22,19 +26,21 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	// GetDB returns the underlying *sql.DB instance for raw queries
+	GetDB() *sql.DB
+
+	// GetGormDB returns the underlying *gorm.DB instance
+	GetGormDB() *gorm.DB
 }
 
 type service struct {
-	db *sql.DB
+	db     *sql.DB
+	gormDB *gorm.DB
+	dbName string
 }
 
 var (
-	database   = os.Getenv("BLUEPRINT_DB_DATABASE")
-	password   = os.Getenv("BLUEPRINT_DB_PASSWORD")
-	username   = os.Getenv("BLUEPRINT_DB_USERNAME")
-	port       = os.Getenv("BLUEPRINT_DB_PORT")
-	host       = os.Getenv("BLUEPRINT_DB_HOST")
-	schema     = os.Getenv("BLUEPRINT_DB_SCHEMA")
 	dbInstance *service
 )
 
@@ -43,13 +49,83 @@ func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	db, err := sql.Open("pgx", connStr)
+
+	// Load .env file from project root
+	// Try multiple paths to handle different working directories
+	envPaths := []string{
+		".env",
+		"../.env",
+		"../../.env",
+	}
+
+	for _, envPath := range envPaths {
+		if err := godotenv.Load(envPath); err == nil {
+			log.Printf("Loaded .env from: %s", envPath)
+			break
+		}
+	}
+
+	// Get env variables
+	dbName := os.Getenv("DB_NAME")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbUser := os.Getenv("DB_USER")
+	dbPort := os.Getenv("DB_PORT")
+	dbHost := os.Getenv("DB_HOST")
+	dbSSLMode := os.Getenv("DB_SSLMODE")
+
+	// Default values
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+	if dbSSLMode == "" {
+		dbSSLMode = "disable"
+	}
+
+	// Validate required env vars
+	if dbUser == "" || dbPassword == "" || dbName == "" {
+		log.Fatal("Missing required database env vars: DB_USER, DB_PASSWORD, DB_NAME")
+	}
+
+	// Log connection info for debugging
+	log.Printf("Connecting to database: %s@%s:%s/%s", dbUser, dbHost, dbPort, dbName)
+
+	// PostgreSQL connection string
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbUser, dbPassword, dbHost, dbPort, dbName, dbSSLMode)
+
+	// Initialize SQL connection
+	sqlDB, err := sql.Open("pgx", connStr)
 	if err != nil {
+		log.Printf("Failed to open database connection: %v", err)
+		log.Printf("Connection string: postgres://%s:***@%s:%s/%s?sslmode=%s", dbUser, dbHost, dbPort, dbName, dbSSLMode)
 		log.Fatal(err)
 	}
+
+	// Test the connection
+	if err := sqlDB.Ping(); err != nil {
+		log.Printf("Failed to ping database: %v", err)
+		log.Printf("Make sure PostgreSQL is running at %s:%s", dbHost, dbPort)
+		log.Fatal(err)
+	}
+
+	// Initialize GORM
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		log.Printf("Failed to initialize GORM: %v", err)
+		log.Fatal(err)
+	}
+
 	dbInstance = &service{
-		db: db,
+		db:     sqlDB,
+		gormDB: gormDB,
+		dbName: dbName,
 	}
 	return dbInstance
 }
@@ -110,6 +186,16 @@ func (s *service) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", database)
+	log.Printf("Disconnected from database: %s", s.dbName)
 	return s.db.Close()
+}
+
+// GetDB returns the underlying *sql.DB instance for raw queries
+func (s *service) GetDB() *sql.DB {
+	return s.db
+}
+
+// GetGormDB returns the underlying *gorm.DB instance
+func (s *service) GetGormDB() *gorm.DB {
+	return s.gormDB
 }
