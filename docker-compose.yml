@@ -65,11 +65,14 @@ services:
       retries: 3
       start_period: 10s
 
-  # ===========================================================================
-  # Database - PostgreSQL
+# ===========================================================================
+  # Database - PostgreSQL + PgVector
   # ===========================================================================
   postgres:
-    image: postgres:16-alpine
+    # QUAN TRỌNG: Đổi từ postgres:16-alpine sang image này
+    # Image này đã cài sẵn extension "vector"
+    image: pgvector/pgvector:pg16
+    
     container_name: ttt-postgres
     restart: unless-stopped
     ports:
