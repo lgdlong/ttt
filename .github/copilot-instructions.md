@@ -50,7 +50,6 @@ Khi gặp bug hoặc test fail:
 ❌ "Tests should pass"
 ❌ "Fixed!"
 
-✅ "Ran `pnpm test` - 34/34 tests pass"
 ✅ "Ran `pnpm build` - exit code 0"
 
 > Tham khảo: `skills/debugging/verification-before-completion/SKILL.md`
@@ -71,7 +70,6 @@ Khi tạo React components:
 
 Khi thiết kế UI:
 
-- **KHÔNG** dùng generic fonts (Inter, Arial, Roboto)
 - **KHÔNG** dùng purple gradients on white (AI slop)
 - **PHẢI** commit to một aesthetic direction rõ ràng
 - **PHẢI** có personality và memorable elements
