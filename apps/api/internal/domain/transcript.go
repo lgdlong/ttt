@@ -25,11 +25,10 @@ type TranscriptSegment struct {
 	// Field này dùng để mapping với cột tsvector trong Postgres.
 	// GORM mặc định sẽ bỏ qua khi insert/update (<-:false) vì ta dùng Trigger DB để tự điền.
 	// Nó chỉ dùng để query hoặc migration.
-	TSV string `gorm:"column:tsv;type:tsvector;<-:false"`
+	TSV string `gorm:"-"`
 }
 
 // TableName giúp GORM map đúng vào bảng 'transcript_segments'
 func (TranscriptSegment) TableName() string {
 	return "transcript_segments"
 }
-
