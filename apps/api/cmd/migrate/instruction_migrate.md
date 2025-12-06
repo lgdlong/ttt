@@ -1,0 +1,1 @@
+DB_HOST=localhost go run cmd/migrate/main/main.go -action=up
