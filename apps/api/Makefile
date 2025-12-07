@@ -47,6 +47,11 @@ clean:
 	@echo "Cleaning..."
 	@rm -f main
 
+# Generate Swagger documentation
+swagger:
+	@echo "Generating Swagger docs..."
+	@swag init -g cmd/api/main.go -o ./docs
+
 # Live Reload
 watch:
 	@powershell -ExecutionPolicy Bypass -Command "if (Get-Command air -ErrorAction SilentlyContinue) { \
