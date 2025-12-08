@@ -87,7 +87,7 @@ const Header: React.FC = () => {
         sx={{ cursor: 'pointer', flexShrink: 0 }}
         onClick={() => navigate('/')}
       >
-        TTT ARCHIVE
+        TTT
       </Typography>
 
       {/* Search Bar */}

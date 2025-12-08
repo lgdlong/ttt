@@ -141,7 +141,7 @@ const RegisterPage: React.FC = () => {
             to="/"
             style={{ textDecoration: 'none' }}
           >
-            TTT ARCHIVE
+            TTT
           </Typography>
 
           <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
