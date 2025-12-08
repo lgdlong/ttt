@@ -3,6 +3,8 @@
  * Matching backend DTOs from apps/api/internal/dto
  */
 
+import type { TagResponse as ModTagResponse } from './tag'
+
 // ===== API Request Types =====
 
 export type VideoSort = 'newest' | 'popular' | 'views'
@@ -12,6 +14,14 @@ export interface ListVideoRequest {
   limit?: number // Default: 10, min: 1, max: 50
   sort?: VideoSort
   tag_id?: string // UUID
+}
+
+// VideoListRequest for mod dashboard
+export interface VideoListRequest {
+  page?: number
+  page_size?: number
+  q?: string
+  tag_ids?: number[]
 }
 
 export interface TranscriptSearchRequest {
@@ -110,4 +120,34 @@ export interface TranscriptParagraph {
   id: string
   startTime: number
   segments: SegmentResponse[]
+}
+
+// ===== Mod Dashboard Types =====
+
+/**
+ * Video model for mod dashboard
+ */
+export interface Video {
+  id: number
+  youtube_id: string
+  title: string
+  description?: string
+  thumbnail_url?: string
+  duration?: number
+  published_at?: string
+  view_count?: number
+  has_transcript?: boolean
+  tags?: ModTagResponse[]
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * VideoListResponse for mod dashboard (different structure from public API)
+ */
+export interface ModVideoListResponse {
+  videos: Video[]
+  total: number
+  page: number
+  page_size: number
 }

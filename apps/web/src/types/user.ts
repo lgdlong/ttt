@@ -43,6 +43,7 @@ export interface ListUserRequest {
   limit?: number // Default: 20, min: 1, max: 100
   role?: UserRole
   is_active?: boolean
+  q?: string // Search query (username, email, full_name)
 }
 
 // ===== API Response Types =====
