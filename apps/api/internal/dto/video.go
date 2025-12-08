@@ -26,12 +26,6 @@ type VideoDetailResponse struct {
 	Tags []TagResponse `json:"tags"`
 }
 
-// TagResponse - Tag information
-type TagResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
 // TranscriptResponse - Full transcript with segments
 type TranscriptResponse struct {
 	VideoID  string            `json:"video_id"`
@@ -58,4 +52,28 @@ type PaginationMetadata struct {
 type VideoListResponse struct {
 	Data       []VideoCardResponse `json:"data"`
 	Pagination PaginationMetadata  `json:"pagination"`
+}
+
+// ModVideoResponse - Video data for mod dashboard
+type ModVideoResponse struct {
+	ID            string        `json:"id"`
+	YoutubeID     string        `json:"youtube_id"`
+	Title         string        `json:"title"`
+	Description   string        `json:"description"`
+	ThumbnailURL  string        `json:"thumbnail_url"`
+	Duration      int           `json:"duration"`
+	PublishedAt   string        `json:"published_at"`
+	ViewCount     int           `json:"view_count"`
+	HasTranscript bool          `json:"has_transcript"`
+	Tags          []TagResponse `json:"tags"`
+	CreatedAt     string        `json:"created_at"`
+	UpdatedAt     string        `json:"updated_at"`
+}
+
+// ModVideoListResponse - Paginated mod video list
+type ModVideoListResponse struct {
+	Videos   []ModVideoResponse `json:"videos"`
+	Total    int64              `json:"total"`
+	Page     int                `json:"page"`
+	PageSize int                `json:"page_size"`
 }
