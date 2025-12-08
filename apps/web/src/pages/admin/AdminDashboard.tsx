@@ -1,121 +1,217 @@
-import React from 'react'
-import { Box, Container, Typography, Paper, Grid, Card, CardContent, Chip } from '@mui/material'
+import React, { useState } from 'react'
+import {
+  Box,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+  Divider,
+  useTheme,
+  useMediaQuery,
+  IconButton,
+  AppBar,
+  Toolbar,
+} from '@mui/material'
 import {
   People as PeopleIcon,
-  VideoLibrary as VideoIcon,
+  Dashboard as DashboardIcon,
+  Menu as MenuIcon,
   Settings as SettingsIcon,
-  Security as SecurityIcon,
 } from '@mui/icons-material'
 import { useAuth } from '~/providers/AuthProvider'
+import AdminOverview from './AdminOverview'
+import UserManagement from './UserManagement'
+
+const DRAWER_WIDTH = 260
+
+type AdminView = 'overview' | 'users' | 'settings'
 
 /**
  * AdminDashboard Component
- * Admin control panel - only accessible by admin users
+ * Admin control panel with sidebar navigation
+ * - User management with ban/search functionality
+ * - Role-based display (user/mod/admin)
  */
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [currentView, setCurrentView] = useState<AdminView>('users')
 
-  const adminCards = [
-    {
-      title: 'Quản lý người dùng',
-      description: 'Xem, tạo, sửa, xóa tài khoản người dùng',
-      icon: <PeopleIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/users',
-      color: '#008080',
-    },
-    {
-      title: 'Quản lý video',
-      description: 'Quản lý video và transcript',
-      icon: <VideoIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/videos',
-      color: '#4caf50',
-    },
-    {
-      title: 'Cài đặt hệ thống',
-      description: 'Cấu hình hệ thống và tham số',
-      icon: <SettingsIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/settings',
-      color: '#ff9800',
-    },
-    {
-      title: 'Bảo mật',
-      description: 'Quản lý phiên đăng nhập và quyền truy cập',
-      icon: <SecurityIcon sx={{ fontSize: 40 }} />,
-      path: '/admin/security',
-      color: '#f44336',
-    },
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen)
+  }
+
+  const menuItems = [
+    { id: 'overview' as AdminView, label: 'Tổng quan', icon: <DashboardIcon /> },
+    { id: 'users' as AdminView, label: 'Quản lý người dùng', icon: <PeopleIcon /> },
+    { id: 'settings' as AdminView, label: 'Cài đặt', icon: <SettingsIcon /> },
   ]
 
-  return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Paper
-        elevation={0}
-        sx={{
-          p: 4,
-          mb: 4,
-          border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Typography variant="h4" fontWeight={700}>
-            Admin Dashboard
-          </Typography>
-          <Chip label="Admin" color="error" size="small" sx={{ fontWeight: 600 }} />
-        </Box>
-        <Typography color="text.secondary">
-          Xin chào, <strong>{user?.username}</strong>! Đây là trang quản trị hệ thống.
+  const drawer = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h6" fontWeight={700} color="primary.main">
+          Admin Panel
         </Typography>
-      </Paper>
+        <Typography variant="body2" color="text.secondary">
+          {user?.full_name || user?.username}
+        </Typography>
+      </Box>
 
-      <Grid container spacing={3}>
-        {adminCards.map((card) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={card.title}>
-            <Card
+      {/* Navigation */}
+      <List sx={{ flex: 1, py: 2 }}>
+        {menuItems.map((item) => (
+          <ListItem key={item.id} disablePadding>
+            <ListItemButton
+              selected={currentView === item.id}
+              onClick={() => {
+                setCurrentView(item.id)
+                if (isMobile) setMobileOpen(false)
+              }}
               sx={{
-                height: '100%',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                border: '1px solid',
-                borderColor: 'divider',
-                '&:hover': {
-                  borderColor: card.color,
-                  transform: 'translateY(-4px)',
-                  boxShadow: `0 4px 20px ${card.color}20`,
+                mx: 1,
+                borderRadius: 0,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'primary.dark',
+                  },
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
                 },
               }}
             >
-              <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                <Box sx={{ color: card.color, mb: 2 }}>{card.icon}</Box>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  {card.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {card.description}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+              <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          </ListItem>
         ))}
-      </Grid>
+      </List>
 
-      <Paper
-        elevation={0}
+      {/* Footer */}
+      <Divider />
+      <Box sx={{ p: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          TTT Admin v1.0
+        </Typography>
+      </Box>
+    </Box>
+  )
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'overview':
+        return <AdminOverview />
+      case 'users':
+        return <UserManagement />
+      case 'settings':
+        return (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" fontWeight={600} gutterBottom>
+              Cài đặt
+            </Typography>
+            <Typography color="text.secondary">Chức năng đang phát triển...</Typography>
+          </Box>
+        )
+      default:
+        return <AdminOverview />
+    }
+  }
+
+  return (
+    <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 64px)' }}>
+      {/* Mobile AppBar */}
+      {isMobile && (
+        <AppBar
+          position="fixed"
+          sx={{
+            top: 64,
+            bgcolor: 'background.paper',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+          elevation={0}
+        >
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, color: 'text.primary' }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" color="text.primary" fontWeight={600}>
+              {menuItems.find((m) => m.id === currentView)?.label}
+            </Typography>
+          </Toolbar>
+        </AppBar>
+      )}
+
+      {/* Sidebar Drawer */}
+      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+        {/* Mobile drawer */}
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: DRAWER_WIDTH,
+              top: 64,
+              height: 'calc(100% - 64px)',
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+
+        {/* Desktop drawer */}
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: DRAWER_WIDTH,
+              position: 'relative',
+              height: '100%',
+              border: 'none',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+            },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+
+      {/* Main Content */}
+      <Box
+        component="main"
         sx={{
-          p: 3,
-          mt: 4,
-          border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'warning.lighter',
+          flexGrow: 1,
+          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          mt: { xs: 7, md: 0 },
+          bgcolor: 'background.default',
+          minHeight: '100%',
         }}
       >
-        <Typography variant="body2" color="text.secondary">
-          <strong>Lưu ý:</strong> Các thao tác trong khu vực admin sẽ được ghi log. Vui lòng cẩn
-          thận khi thực hiện các thay đổi.
-        </Typography>
-      </Paper>
-    </Container>
+        {renderContent()}
+      </Box>
+    </Box>
   )
 }
 
