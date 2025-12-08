@@ -34,6 +34,17 @@ const ModDashboard = lazy(() =>
   }))
 )
 
+const TranscriptEditor = lazy(() =>
+  import('~/pages/mod/TranscriptEditor').catch(() => ({
+    default: () => (
+      <Box sx={{ p: 4 }}>
+        <Typography variant="h4">Transcript Editor</Typography>
+        <Typography color="text.secondary">Error loading editor...</Typography>
+      </Box>
+    ),
+  }))
+)
+
 /**
  * Loading fallback component
  */
@@ -128,6 +139,14 @@ const AppRouter: React.FC = () => {
             element={
               <Suspense fallback={<PageLoader />}>
                 <ModDashboard />
+              </Suspense>
+            }
+          />
+          <Route
+            path="videos/:videoId/transcript"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <TranscriptEditor />
               </Suspense>
             }
           />
