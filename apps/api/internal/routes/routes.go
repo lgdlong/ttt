@@ -35,7 +35,8 @@ func RegisterRoutes(
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/signup", authHandler.Signup)
 			auth.POST("/logout", authHandler.Logout)
-			auth.POST("/refresh", authHandler.RefreshToken)
+			// TODO: TEMPORARILY DISABLED - Session and Refresh Token
+			// auth.POST("/refresh", authHandler.RefreshToken)
 
 			// Google OAuth
 			auth.GET("/google", authHandler.GoogleAuth)

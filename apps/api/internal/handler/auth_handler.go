@@ -113,6 +113,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Set token in cookie
 	h.setAuthCookie(c, response.Token)
+	// TODO: TEMPORARILY DISABLED - Session and Refresh Token
+	// h.setRefreshCookie(c, response.RefreshToken)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -155,6 +157,8 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 
 	// Set token in cookie
 	h.setAuthCookie(c, response.Token)
+	// TODO: TEMPORARILY DISABLED - Session and Refresh Token
+	// h.setRefreshCookie(c, response.RefreshToken)
 
 	c.JSON(http.StatusCreated, response)
 }
@@ -169,7 +173,8 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// Clear cookies
 	h.clearAuthCookie(c)
-	h.clearRefreshCookie(c)
+	// TODO: TEMPORARILY DISABLED - Session and Refresh Token
+	// h.clearRefreshCookie(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Logged out successfully",
@@ -184,6 +189,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Success 200 {object} dto.AuthResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Router /auth/refresh [post]
+// TODO: TEMPORARILY DISABLED - Session and Refresh Token
+/*
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
@@ -210,6 +217,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+*/
 
 // GoogleAuth godoc
 // @Summary Initiate Google OAuth login

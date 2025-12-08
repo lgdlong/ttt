@@ -34,23 +34,24 @@ const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ErrorResponse>) => {
-    const originalRequest = error.config
+    // TODO: TEMPORARILY DISABLED - Session and Refresh Token
+    // const originalRequest = error.config
 
     // Handle 401 Unauthorized - try to refresh token
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      originalRequest._retry = true
+    // if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    //   originalRequest._retry = true
 
-      try {
-        // Attempt to refresh the token
-        await apiClient.post('/auth/refresh')
-        // Retry the original request
-        return apiClient(originalRequest)
-      } catch {
-        // Refresh failed, clear local state and redirect to login
-        localStorage.removeItem('user')
-        window.location.href = '/login'
-      }
-    }
+    //   try {
+    //     // Attempt to refresh the token
+    //     await apiClient.post('/auth/refresh')
+    //     // Retry the original request
+    //     return apiClient(originalRequest)
+    //   } catch {
+    //     // Refresh failed, clear local state and redirect to login
+    //     localStorage.removeItem('user')
+    //     window.location.href = '/login'
+    //   }
+    // }
 
     const errorMessage =
       error.response?.data?.message || error.response?.data?.error || error.message
@@ -109,13 +110,16 @@ export async function logout(): Promise<void> {
 /**
  * Refresh access token using refresh token cookie
  * POST /api/auth/refresh
+ * TODO: TEMPORARILY DISABLED - Session and Refresh Token
  */
+/*
 export async function refreshToken(): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>('/auth/refresh')
   // Update user in localStorage
   localStorage.setItem('user', JSON.stringify(response.data.user))
   return response.data
 }
+*/
 
 /**
  * Get current user info from server
