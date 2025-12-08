@@ -28,11 +28,22 @@ func Migrate() error {
 
 	log.Println("Running migrations...")
 
-	// Enable pgcrypto extension (REQUIRED for gen_random_uuid())
+	// Enable pgcrypto extension (REQUIRED for uuid functions)
 	if err := gormDB.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto").Error; err != nil {
 		log.Printf("⚠ pgcrypto extension failed: %v", err)
+		return fmt.Errorf("pgcrypto extension is required: %w", err)
 	} else {
 		log.Println("✓ pgcrypto extension enabled")
+	}
+
+	// Verify uuid_generate_v4 function exists, create if needed
+	if err := gormDB.Exec(`
+		CREATE OR REPLACE FUNCTION uuid_generate_v4()
+		RETURNS uuid AS
+		'pgcrypto'
+		LANGUAGE C IMMUTABLE STRICT;
+	`).Error; err != nil {
+		log.Printf("⚠ Warning: Could not ensure uuid_generate_v4 exists: %v", err)
 	}
 
 	// Enable pgvector extension (REQUIRED for Tag.Embedding field)
@@ -74,6 +85,24 @@ func Migrate() error {
 	}
 
 	log.Println("✓ All models migrated successfully")
+
+	// Migrate User model
+	if err := gormDB.AutoMigrate(&domain.User{}); err != nil {
+		return fmt.Errorf("migration failed for User: %w", err)
+	}
+	log.Println("✓ User table migrated")
+
+	// Migrate SocialAccount model
+	if err := gormDB.AutoMigrate(&domain.SocialAccount{}); err != nil {
+		return fmt.Errorf("migration failed for SocialAccount: %w", err)
+	}
+	log.Println("✓ SocialAccount table migrated")
+
+	// Migrate Session model
+	if err := gormDB.AutoMigrate(&domain.Session{}); err != nil {
+		return fmt.Errorf("migration failed for Session: %w", err)
+	}
+	log.Println("✓ Session table migrated")
 
 	// Add TSV column manually using raw SQL (GORM ignores it with gorm:"-")
 	if err := addTSVColumn(gormDB); err != nil {
@@ -148,6 +177,12 @@ func createIndexes(db *gorm.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_videos_youtube_id ON videos(youtube_id)",
 		"CREATE INDEX IF NOT EXISTS idx_videos_published_at ON videos(published_at)",
 		"CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name)",
+		"CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
+		"CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)",
+		"CREATE INDEX IF NOT EXISTS idx_social_accounts_provider_id ON social_accounts(provider, provider_id)",
+		"CREATE INDEX IF NOT EXISTS idx_social_accounts_user_id ON social_accounts(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_sessions_refresh_token ON sessions(refresh_token)",
 	}
 
 	for _, idx := range btreeIndexes {
@@ -232,6 +267,9 @@ func Rollback() error {
 
 	// Drop all tables in reverse order of dependencies
 	if err := gormDB.Migrator().DropTable(
+		&domain.Session{},
+		&domain.SocialAccount{},
+		&domain.User{},
 		&domain.TranscriptSegment{},
 		&domain.Video{},
 		&domain.Tag{},
@@ -251,6 +289,9 @@ func Status() error {
 	log.Println("\n=== Database Migration Status ===")
 
 	models := map[string]interface{}{
+		"users":               &domain.User{},
+		"social_accounts":     &domain.SocialAccount{},
+		"sessions":            &domain.Session{},
 		"videos":              &domain.Video{},
 		"transcript_segments": &domain.TranscriptSegment{},
 		"tags":                &domain.Tag{},

@@ -51,17 +51,24 @@ func NewServer() *http.Server {
 	// Initialize dependency injection chain
 	// Repository layer
 	videoRepo := repository.NewVideoRepository(dbService.GetGormDB())
+	userRepo := repository.NewUserRepository(dbService.GetGormDB())
+	socialAccountRepo := repository.NewSocialAccountRepository(dbService.GetGormDB())
+	sessionRepo := repository.NewSessionRepository(dbService.GetGormDB())
 
 	// Service layer
 	videoService := service.NewVideoService(videoRepo)
+	userService := service.NewUserService(userRepo)
+	authService := service.NewAuthService(userRepo, socialAccountRepo, sessionRepo)
 
 	// Handler layer
 	videoHandler := handler.NewVideoHandler(videoService)
 	searchHandler := handler.NewSearchHandler(videoService)
 	systemHandler := handler.NewSystemHandler()
+	userHandler := handler.NewUserHandler(userService)
+	authHandler := handler.NewAuthHandler(authService)
 
 	// Register routes
-	routes.RegisterRoutes(router, videoHandler, searchHandler, systemHandler)
+	routes.RegisterRoutes(router, videoHandler, searchHandler, systemHandler, userHandler, authHandler, userRepo)
 
 	// Register Swagger endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
