@@ -1,7 +1,9 @@
 import React from 'react'
 import { ThemeProvider, CssBaseline } from '@mui/material'
+import { BrowserRouter } from 'react-router-dom'
 import theme from '~/theme'
 import QueryProvider from '~/providers/QueryProvider'
+import { AuthProvider } from '~/providers/AuthProvider'
 import AppRouter from '~/router'
 
 /**
@@ -13,7 +15,11 @@ const App: React.FC = () => {
     <QueryProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <AppRouter />
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRouter />
+          </AuthProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryProvider>
   )
