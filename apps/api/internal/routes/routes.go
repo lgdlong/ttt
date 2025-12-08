@@ -16,6 +16,8 @@ func RegisterRoutes(
 	systemHandler *handler.SystemHandler,
 	userHandler *handler.UserHandler,
 	authHandler *handler.AuthHandler,
+	tagHandler *handler.TagHandler,
+	statsHandler *handler.StatsHandler,
 	userRepo repository.UserRepository,
 ) {
 	// Apply global middleware
@@ -83,10 +85,8 @@ func RegisterRoutes(
 		admin.Use(middleware.AuthMiddleware(userRepo))
 		admin.Use(middleware.RequireAdmin())
 		{
-			// Add admin-specific routes here
-			admin.GET("/dashboard", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "Admin dashboard"})
-			})
+			// Statistics
+			admin.GET("/stats", statsHandler.GetAdminStats)
 		}
 
 		// Mod endpoints - requires mod or admin role
@@ -94,10 +94,31 @@ func RegisterRoutes(
 		mod.Use(middleware.AuthMiddleware(userRepo))
 		mod.Use(middleware.RequireMod())
 		{
-			// Add mod-specific routes here
-			mod.GET("/dashboard", func(c *gin.Context) {
-				c.JSON(200, gin.H{"message": "Mod dashboard"})
-			})
+			// Statistics
+			mod.GET("/stats", statsHandler.GetModStats)
+
+			// Tag management
+			modTags := mod.Group("/tags")
+			{
+				modTags.GET("", tagHandler.ListTags)
+				modTags.POST("", tagHandler.CreateTag)
+				modTags.GET("/:id", tagHandler.GetTag)
+				modTags.PUT("/:id", tagHandler.UpdateTag)
+				modTags.DELETE("/:id", tagHandler.DeleteTag)
+			}
+
+			// Video management
+			modVideos := mod.Group("/videos")
+			{
+				modVideos.GET("", videoHandler.GetModVideoList)
+				modVideos.GET("/search", videoHandler.SearchVideos)
+				modVideos.GET("/preview/:id", videoHandler.PreviewVideo)
+				modVideos.POST("", videoHandler.CreateVideo)
+				modVideos.DELETE("/:id", videoHandler.DeleteVideo)
+				modVideos.GET("/:id/tags", tagHandler.GetVideoTags)
+				modVideos.POST("/:id/tags", tagHandler.AddTagToVideo)
+				modVideos.DELETE("/:id/tags/:tag_id", tagHandler.RemoveTagFromVideo)
+			}
 		}
 	}
 }

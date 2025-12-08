@@ -54,11 +54,15 @@ func NewServer() *http.Server {
 	userRepo := repository.NewUserRepository(dbService.GetGormDB())
 	socialAccountRepo := repository.NewSocialAccountRepository(dbService.GetGormDB())
 	sessionRepo := repository.NewSessionRepository(dbService.GetGormDB())
+	tagRepo := repository.NewTagRepository(dbService.GetGormDB())
+	statsRepo := repository.NewStatsRepository(dbService.GetGormDB())
 
 	// Service layer
 	videoService := service.NewVideoService(videoRepo)
 	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(userRepo, socialAccountRepo, sessionRepo)
+	tagService := service.NewTagService(tagRepo, videoRepo)
+	statsService := service.NewStatsService(statsRepo)
 
 	// Handler layer
 	videoHandler := handler.NewVideoHandler(videoService)
@@ -66,9 +70,11 @@ func NewServer() *http.Server {
 	systemHandler := handler.NewSystemHandler()
 	userHandler := handler.NewUserHandler(userService)
 	authHandler := handler.NewAuthHandler(authService)
+	tagHandler := handler.NewTagHandler(tagService)
+	statsHandler := handler.NewStatsHandler(statsService)
 
 	// Register routes
-	routes.RegisterRoutes(router, videoHandler, searchHandler, systemHandler, userHandler, authHandler, userRepo)
+	routes.RegisterRoutes(router, videoHandler, searchHandler, systemHandler, userHandler, authHandler, tagHandler, statsHandler, userRepo)
 
 	// Register Swagger endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

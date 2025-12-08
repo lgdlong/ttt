@@ -77,6 +77,13 @@ func (r *userRepository) ListUsers(req dto.ListUserRequest) ([]domain.User, int6
 
 	query := r.db.Model(&domain.User{})
 
+	// Apply search query if provided
+	if req.Query != "" {
+		searchPattern := "%" + req.Query + "%"
+		query = query.Where("LOWER(username) LIKE LOWER(?) OR LOWER(email) LIKE LOWER(?) OR LOWER(full_name) LIKE LOWER(?)",
+			searchPattern, searchPattern, searchPattern)
+	}
+
 	// Apply role filter if provided
 	if req.Role != "" {
 		query = query.Where("role = ?", req.Role)

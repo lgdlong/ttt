@@ -151,6 +151,7 @@ func (s *authService) Signup(req dto.SignupRequest) (*dto.AuthResponse, error) {
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
+		FullName:     req.FullName,                // Optional full name
 		Role:         string(domain.UserRoleUser), // Default: user
 		IsActive:     true,                        // Default: active
 	}

@@ -41,6 +41,7 @@ type ListUserRequest struct {
 	Limit    int    `form:"limit" binding:"omitempty,min=1,max=100" default:"20"`
 	Role     string `form:"role" binding:"omitempty,oneof=user admin mod"`
 	IsActive *bool  `form:"is_active" binding:"omitempty"`
+	Query    string `form:"q" binding:"omitempty"` // Search by username or email
 }
 
 // UserListResponse - Response with list of users and pagination
