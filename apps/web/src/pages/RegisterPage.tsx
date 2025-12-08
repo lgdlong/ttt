@@ -26,6 +26,7 @@ import { useAuth } from '~/providers/AuthProvider'
  */
 const RegisterPage: React.FC = () => {
   const { signup, loginWithGoogle } = useAuth()
+  const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,6 +34,7 @@ const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState<{
+    fullName?: string
     username?: string
     email?: string
     password?: string
@@ -44,11 +46,17 @@ const RegisterPage: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: {
+      fullName?: string
       username?: string
       email?: string
       password?: string
       confirmPassword?: string
     } = {}
+
+    // Full name is optional but if provided, validate length
+    if (fullName && fullName.length > 100) {
+      newErrors.fullName = 'Họ tên không được quá 100 ký tự'
+    }
 
     if (!username) {
       newErrors.username = 'Username không được để trống'
@@ -89,7 +97,7 @@ const RegisterPage: React.FC = () => {
     setApiError(null)
 
     try {
-      await signup({ username, email, password })
+      await signup({ username, email, password, full_name: fullName || undefined })
       // Navigation is handled by AuthProvider
     } catch (error) {
       setApiError(error instanceof Error ? error.message : 'Đăng ký thất bại')
@@ -191,6 +199,19 @@ const RegisterPage: React.FC = () => {
 
               <TextField
                 fullWidth
+                label="Họ và tên"
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                error={!!errors.fullName}
+                helperText={errors.fullName || 'Không bắt buộc'}
+                autoComplete="name"
+                autoFocus
+                disabled={isLoading || isGoogleLoading}
+              />
+
+              <TextField
+                fullWidth
                 label="Username"
                 type="text"
                 value={username}
@@ -198,7 +219,6 @@ const RegisterPage: React.FC = () => {
                 error={!!errors.username}
                 helperText={errors.username}
                 autoComplete="username"
-                autoFocus
                 disabled={isLoading || isGoogleLoading}
               />
 
