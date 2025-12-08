@@ -1,7 +1,22 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, Typography, IconButton, Avatar, InputBase } from '@mui/material'
+import {
+  Box,
+  Typography,
+  IconButton,
+  Avatar,
+  InputBase,
+  Menu,
+  MenuItem,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+} from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
+import LogoutIcon from '@mui/icons-material/Logout'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import PersonIcon from '@mui/icons-material/Person'
+import { useAuth } from '~/providers/AuthProvider'
 
 /**
  * Header Component
@@ -10,7 +25,10 @@ import SearchIcon from '@mui/icons-material/Search'
  */
 const Header: React.FC = () => {
   const navigate = useNavigate()
+  const { user, isAuthenticated, logout } = useAuth()
   const [searchQuery, setSearchQuery] = React.useState('')
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+  const menuOpen = Boolean(anchorEl)
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,6 +36,30 @@ const Header: React.FC = () => {
       // TODO: Implement search navigation when API is ready
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
     }
+  }
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
+
+  const handleLogout = async () => {
+    handleMenuClose()
+    await logout()
+    navigate('/login')
+  }
+
+  const handleAdminClick = () => {
+    handleMenuClose()
+    navigate('/admin')
+  }
+
+  const handleProfileClick = () => {
+    handleMenuClose()
+    navigate('/profile')
   }
 
   return (
@@ -80,17 +122,90 @@ const Header: React.FC = () => {
         </IconButton>
       </Box>
 
-      {/* User Avatar - Navigate to login if not authenticated */}
-      {/* TODO: Replace with actual user data from auth API */}
-      <Avatar
-        sx={{
-          width: 32,
-          height: 32,
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-        onClick={() => navigate('/login')}
-      />
+      {/* User Avatar */}
+      {isAuthenticated ? (
+        <>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              cursor: 'pointer',
+              flexShrink: 0,
+              bgcolor: 'primary.main',
+              fontSize: '0.875rem',
+              fontWeight: 'bold',
+            }}
+            onClick={handleMenuOpen}
+          >
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+          </Avatar>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={menuOpen}
+            onClose={handleMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            {/* User Info Header */}
+            <MenuItem disabled sx={{ flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
+              <Typography variant="subtitle2" fontWeight={600}>
+                {user?.full_name || user?.username || 'User'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {user?.email}
+              </Typography>
+            </MenuItem>
+
+            <Divider />
+
+            {/* Profile */}
+            <MenuItem onClick={handleProfileClick}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Profile</ListItemText>
+            </MenuItem>
+
+            {/* Admin Panel - Only show if user is admin or mod */}
+            {user?.role && (user.role === 'admin' || user.role === 'mod') && (
+              <MenuItem onClick={handleAdminClick}>
+                <ListItemIcon>
+                  <AdminPanelSettingsIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText>{user.role === 'admin' ? 'Admin Panel' : 'Mod Panel'}</ListItemText>
+              </MenuItem>
+            )}
+
+            <Divider />
+
+            {/* Logout */}
+            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+              <ListItemIcon sx={{ color: 'inherit' }}>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Logout</ListItemText>
+            </MenuItem>
+          </Menu>
+        </>
+      ) : (
+        <Avatar
+          sx={{
+            width: 40,
+            height: 40,
+            cursor: 'pointer',
+            flexShrink: 0,
+            bgcolor: 'action.hover',
+          }}
+          onClick={() => navigate('/login')}
+        />
+      )}
     </Box>
   )
 }
