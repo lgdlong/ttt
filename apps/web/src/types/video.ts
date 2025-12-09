@@ -114,6 +114,33 @@ export interface ErrorResponse {
   code: number
 }
 
+// ===== Video Transcript Review Types =====
+
+export interface SubmitReviewRequest {
+  notes?: string // Optional review notes (max 500 chars)
+}
+
+export interface VideoTranscriptReviewResponse {
+  id: number
+  video_id: string
+  user_id: string
+  reviewed_at: string // ISO 8601 timestamp
+  total_reviews: number // Total reviews for this video
+  video_status: string // Current video status (e.g., "PUBLISHED", "DRAFT")
+  points_awarded: number // Points given to reviewer
+  message: string // Human-readable status message
+}
+
+export interface VideoReviewStats {
+  video_id: string
+  review_count: number
+}
+
+export interface UserReviewStatus {
+  video_id: string
+  has_reviewed: boolean
+}
+
 // ===== Frontend Helper Types =====
 
 export interface TranscriptParagraph {
