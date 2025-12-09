@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Video struct {
@@ -22,7 +23,9 @@ type Video struct {
 	// Relationship N-N: Tags (GORM tự xử lý bảng trung gian video_tags)
 	Tags []Tag `gorm:"many2many:video_tags;"`
 
-	CreatedAt time.Time `gorm:"autoCreateTime"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // <--- SOFT DELETE
 }
 
 func (Video) TableName() string {
