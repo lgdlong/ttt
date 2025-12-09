@@ -21,6 +21,7 @@ type VideoService interface {
 	GetVideoList(req dto.ListVideoRequest) (*dto.VideoListResponse, error)
 	GetVideoDetail(id string) (*dto.VideoDetailResponse, error)
 	GetVideoTranscript(id string) (*dto.TranscriptResponse, error)
+	UpdateSegment(id uint, req dto.UpdateSegmentRequest) (*dto.SegmentResponse, error)
 	SearchTranscripts(req dto.TranscriptSearchRequest) (*dto.TranscriptSearchResponse, error)
 	SearchTags(req dto.TagSearchRequest) (*dto.TagSearchResponse, error)
 
@@ -154,6 +155,21 @@ func (s *videoService) GetVideoTranscript(id string) (*dto.TranscriptResponse, e
 	}
 
 	return s.toTranscriptResponse(id, segments), nil
+}
+
+// UpdateSegment updates a single transcript segment
+func (s *videoService) UpdateSegment(id uint, req dto.UpdateSegmentRequest) (*dto.SegmentResponse, error) {
+	segment, err := s.repo.UpdateSegment(id, req.TextContent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update segment: %w", err)
+	}
+
+	return &dto.SegmentResponse{
+		ID:        segment.ID,
+		StartTime: segment.StartTime,
+		EndTime:   segment.EndTime,
+		Text:      segment.TextContent,
+	}, nil
 }
 
 // SearchTranscripts performs full-text search on transcripts

@@ -18,6 +18,7 @@ func RegisterRoutes(
 	authHandler *handler.AuthHandler,
 	tagHandler *handler.TagHandler,
 	statsHandler *handler.StatsHandler,
+	reviewHandler *handler.VideoTranscriptReviewHandler,
 	userRepo repository.UserRepository,
 ) {
 	// Apply global middleware
@@ -71,6 +72,21 @@ func RegisterRoutes(
 			videos.GET("", videoHandler.GetVideoList)
 			videos.GET("/:id", videoHandler.GetVideoDetail)
 			videos.GET("/:id/transcript", videoHandler.GetVideoTranscript)
+
+			// Review endpoints (protected - requires authentication)
+			videoReviews := videos.Group("/:id/reviews")
+			videoReviews.Use(middleware.AuthMiddleware(userRepo))
+			{
+				videoReviews.POST("", reviewHandler.SubmitReview)                // Submit review
+				videoReviews.GET("/stats", reviewHandler.GetVideoReviewStats)    // Get review count
+				videoReviews.GET("/status", reviewHandler.CheckUserReviewStatus) // Check if user reviewed
+			}
+		}
+
+		// Transcript segment endpoints (public - for editor performance)
+		segments := v1.Group("/transcript-segments")
+		{
+			segments.PATCH("/:id", videoHandler.UpdateSegment)
 		}
 
 		// Search endpoints (public)

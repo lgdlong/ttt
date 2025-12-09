@@ -66,6 +66,12 @@ func Migrate() error {
 	}
 	log.Println("✓ TranscriptSegment table migrated")
 
+	// Migrate VideoTranscriptReview
+	if err := gormDB.AutoMigrate(&domain.VideoTranscriptReview{}); err != nil {
+		return fmt.Errorf("migration failed for VideoTranscriptReview: %w", err)
+	}
+	log.Println("✓ VideoTranscriptReview table migrated")
+
 	// Migrate Tag (requires pgvector extension for Embedding field)
 	if err := gormDB.AutoMigrate(&domain.Tag{}); err != nil {
 		log.Printf("⚠ Warning: Tag migration failed (pgvector may not be installed): %v", err)

@@ -40,6 +40,33 @@ type SegmentResponse struct {
 	Text      string `json:"text"`
 }
 
+// UpdateSegmentRequest - Request to update a single segment
+type UpdateSegmentRequest struct {
+	TextContent string `json:"text_content" binding:"required"`
+	StartTime   *int   `json:"start_time" binding:"omitempty"`
+	EndTime     *int   `json:"end_time" binding:"omitempty"`
+}
+
+// ============ Video Transcript Review DTOs ============
+
+// SubmitReviewRequest - Request to submit a video transcript review
+type SubmitReviewRequest struct {
+	// Optional: Add any review metadata if needed in future
+	Notes string `json:"notes" binding:"omitempty,max=500"`
+}
+
+// VideoTranscriptReviewResponse - Response after submitting a review
+type VideoTranscriptReviewResponse struct {
+	ID            uint   `json:"id"`
+	VideoID       string `json:"video_id"`
+	UserID        string `json:"user_id"`
+	ReviewedAt    string `json:"reviewed_at"`
+	TotalReviews  int    `json:"total_reviews"`  // Total reviews for this video
+	VideoStatus   string `json:"video_status"`   // Current video status (e.g., "PUBLISHED")
+	PointsAwarded int    `json:"points_awarded"` // Points given to reviewer
+	Message       string `json:"message"`        // Human-readable status message
+}
+
 // PaginationMetadata - Pagination info for list responses
 type PaginationMetadata struct {
 	Page       int   `json:"page"`

@@ -107,6 +107,52 @@ func (h *VideoHandler) GetVideoTranscript(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// UpdateSegment godoc
+// @Summary Update transcript segment
+// @Description Update text content of a single transcript segment
+// @Tags Videos
+// @Accept json
+// @Produce json
+// @Param id path int true "Segment ID"
+// @Param request body dto.UpdateSegmentRequest true "Updated segment data"
+// @Success 200 {object} dto.SegmentResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /transcript-segments/{id} [patch]
+func (h *VideoHandler) UpdateSegment(c *gin.Context) {
+	var segmentID uint
+	if _, err := fmt.Sscanf(c.Param("id"), "%d", &segmentID); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid segment ID",
+			Message: err.Error(),
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	var req dto.UpdateSegmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid request body",
+			Message: err.Error(),
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	response, err := h.service.UpdateSegment(segmentID, req)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "Failed to update segment",
+			Message: err.Error(),
+			Code:    http.StatusNotFound,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // GetModVideoList godoc
 // @Summary List videos for mod dashboard
 // @Description Get paginated videos for mod/admin dashboard with tag information
