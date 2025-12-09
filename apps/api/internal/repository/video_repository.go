@@ -52,6 +52,11 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 			Where("video_tags.tag_id = ?", tagUUID)
 	}
 
+	// Apply has_transcript filter if provided
+	if req.HasTranscript != nil {
+		query = query.Where("has_transcript = ?", *req.HasTranscript)
+	}
+
 	// Count total before pagination
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err

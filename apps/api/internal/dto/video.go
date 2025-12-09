@@ -2,10 +2,11 @@ package dto
 
 // ListVideoRequest - Request params for listing videos
 type ListVideoRequest struct {
-	Page  int    `form:"page" binding:"omitempty,min=1" default:"1"`
-	Limit int    `form:"limit" binding:"omitempty,min=1,max=50" default:"10"`
-	Sort  string `form:"sort" binding:"omitempty,oneof=newest popular views"`
-	TagID string `form:"tag_id" binding:"omitempty,uuid"`
+	Page          int    `form:"page" binding:"omitempty,min=1" default:"1"`
+	Limit         int    `form:"limit" binding:"omitempty,min=1,max=50" default:"10"`
+	Sort          string `form:"sort" binding:"omitempty,oneof=newest popular views"`
+	TagID         string `form:"tag_id" binding:"omitempty,uuid"`
+	HasTranscript *bool  `form:"has_transcript" binding:"omitempty"` // nil = all, true = only with transcript, false = only without
 }
 
 // VideoCardResponse - Lightweight video data for grid/list view

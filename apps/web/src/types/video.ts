@@ -14,6 +14,7 @@ export interface ListVideoRequest {
   limit?: number // Default: 10, min: 1, max: 50
   sort?: VideoSort
   tag_id?: string // UUID
+  has_transcript?: boolean // Filter by transcript: true = only with, false = only without, undefined = all
 }
 
 // VideoListRequest for mod dashboard

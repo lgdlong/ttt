@@ -16,7 +16,13 @@ const VideoGridPagination: React.FC<VideoGridPaginationProps> = ({
   selectedTagId,
   sort,
 }) => {
-  const { data } = useVideos({ page, limit: 20, sort, tag_id: selectedTagId ?? undefined })
+  const { data } = useVideos({
+    page,
+    limit: 20,
+    sort,
+    tag_id: selectedTagId ?? undefined,
+    has_transcript: true,
+  })
 
   if (!data || data.pagination.total_pages <= 1) {
     return null

@@ -37,6 +37,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({ selectedTagId, sort = 'newest', p
     limit: 12,
     sort,
     tag_id: selectedTagId ?? undefined,
+    has_transcript: true,
   })
 
   return (
