@@ -103,6 +103,26 @@ const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
             <ClosedCaptionIcon sx={{ fontSize: 14 }} />
           </Box>
         )}
+        {/* Verified Badge if reviewed */}
+        {video.review_count > 0 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 8,
+              left: 8,
+              bgcolor: 'success.main',
+              color: 'white',
+              fontSize: 11,
+              fontWeight: 600,
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              zIndex: 2,
+            }}
+          >
+            ĐÃ DUYỆT
+          </Box>
+        )}
       </Box>
 
       {/* Content */}

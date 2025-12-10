@@ -107,10 +107,24 @@ func (s *videoService) GetVideoList(req dto.ListVideoRequest) (*dto.VideoListRes
 		return nil, fmt.Errorf("failed to get video list: %w", err)
 	}
 
-	// Convert to DTOs
+	// Get review counts for all videos in this page
+	videoIDs := make([]uuid.UUID, len(videos))
+	for i, video := range videos {
+		videoIDs[i] = video.ID
+	}
+
+	reviewCounts, err := s.repo.GetReviewCountsForVideos(videoIDs)
+	if err != nil {
+		// Log error but don't fail - just set review counts to 0
+		fmt.Printf("Warning: Failed to get review counts: %v\n", err)
+		reviewCounts = make(map[uuid.UUID]int)
+	}
+
+	// Convert to DTOs with review counts
 	videoCards := make([]dto.VideoCardResponse, len(videos))
 	for i, video := range videos {
 		videoCards[i] = s.toVideoCardResponse(&video)
+		videoCards[i].ReviewCount = reviewCounts[video.ID]
 	}
 
 	// Calculate pagination metadata

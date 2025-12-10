@@ -19,6 +19,7 @@ type VideoCardResponse struct {
 	PublishedAt   string `json:"published_at"`
 	ViewCount     int    `json:"view_count"`
 	HasTranscript bool   `json:"has_transcript"` // Show "CC" badge
+	ReviewCount   int    `json:"review_count"`   // Number of reviews - show "Đã duyệt" badge if > 0
 }
 
 // VideoDetailResponse - Full video data with tags

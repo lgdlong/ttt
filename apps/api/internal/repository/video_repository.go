@@ -21,6 +21,7 @@ type VideoRepository interface {
 	Update(video *domain.Video) error
 	Delete(id uuid.UUID) error // Soft delete
 	SearchVideos(query string, page, limit int) ([]domain.Video, int64, error)
+	GetReviewCountsForVideos(videoIDs []uuid.UUID) (map[uuid.UUID]int, error)
 
 	// Search operations
 	SearchTranscripts(query string, limit int) ([]dto.TranscriptSearchResult, error)
@@ -79,6 +80,32 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 	}
 
 	return videos, total, nil
+}
+
+// GetReviewCountsForVideos retrieves review counts for a list of video IDs
+func (r *videoRepository) GetReviewCountsForVideos(videoIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	type reviewCount struct {
+		VideoID uuid.UUID
+		Count   int
+	}
+
+	var counts []reviewCount
+	err := r.db.Model(&domain.VideoTranscriptReview{}).
+		Select("video_id, COUNT(*) as count").
+		Where("video_id IN ?", videoIDs).
+		Group("video_id").
+		Scan(&counts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uuid.UUID]int)
+	for _, c := range counts {
+		result[c.VideoID] = c.Count
+	}
+
+	return result, nil
 }
 
 // GetVideoByID retrieves single video with tags

@@ -46,6 +46,7 @@ export interface VideoCardResponse {
   published_at: string
   view_count: number
   has_transcript: boolean // Show "CC" badge
+  review_count: number // Number of reviews - show "Đã duyệt" badge if > 0
 }
 
 export interface TagResponse {
