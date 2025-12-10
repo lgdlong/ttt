@@ -153,6 +153,44 @@ func (h *VideoHandler) UpdateSegment(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// CreateSegment godoc
+// @Summary Create new transcript segment
+// @Description Add a new transcript segment to a video
+// @Tags Videos
+// @Accept json
+// @Produce json
+// @Param id path string true "Video ID (UUID)"
+// @Param request body dto.CreateSegmentRequest true "Segment data"
+// @Success 201 {object} dto.SegmentResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /mod/videos/{id}/transcript/segments [post]
+func (h *VideoHandler) CreateSegment(c *gin.Context) {
+	videoID := c.Param("id")
+
+	var req dto.CreateSegmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid request body",
+			Message: err.Error(),
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	response, err := h.service.CreateSegment(videoID, req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Failed to create segment",
+			Message: err.Error(),
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // GetModVideoList godoc
 // @Summary List videos for mod dashboard
 // @Description Get paginated videos for mod/admin dashboard with tag information

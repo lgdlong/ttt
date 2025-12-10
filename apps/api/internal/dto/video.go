@@ -49,6 +49,13 @@ type UpdateSegmentRequest struct {
 	EndTime     *int   `json:"end_time" binding:"omitempty"`
 }
 
+// CreateSegmentRequest - Request to create a new segment
+type CreateSegmentRequest struct {
+	StartTime int    `json:"start_time" binding:"required,min=0"`           // Milliseconds
+	EndTime   int    `json:"end_time" binding:"required,gtfield=StartTime"` // Milliseconds, must be > StartTime
+	Text      string `json:"text" binding:"required,min=1"`
+}
+
 // ============ Video Transcript Review DTOs ============
 
 // SubmitReviewRequest - Request to submit a video transcript review

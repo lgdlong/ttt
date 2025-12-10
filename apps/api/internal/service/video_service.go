@@ -22,6 +22,7 @@ type VideoService interface {
 	GetVideoDetail(id string) (*dto.VideoDetailResponse, error)
 	GetVideoTranscript(id string) (*dto.TranscriptResponse, error)
 	UpdateSegment(id uint, req dto.UpdateSegmentRequest) (*dto.SegmentResponse, error)
+	CreateSegment(videoID string, req dto.CreateSegmentRequest) (*dto.SegmentResponse, error)
 	SearchTranscripts(req dto.TranscriptSearchRequest) (*dto.TranscriptSearchResponse, error)
 	SearchTags(req dto.TagSearchRequest) (*dto.TagSearchResponse, error)
 
@@ -176,6 +177,26 @@ func (s *videoService) UpdateSegment(id uint, req dto.UpdateSegmentRequest) (*dt
 	segment, err := s.repo.UpdateSegment(id, req.TextContent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update segment: %w", err)
+	}
+
+	return &dto.SegmentResponse{
+		ID:        segment.ID,
+		StartTime: segment.StartTime,
+		EndTime:   segment.EndTime,
+		Text:      segment.TextContent,
+	}, nil
+}
+
+// CreateSegment creates a new transcript segment
+func (s *videoService) CreateSegment(videoID string, req dto.CreateSegmentRequest) (*dto.SegmentResponse, error) {
+	videoUUID, err := uuid.Parse(videoID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid video id: %w", err)
+	}
+
+	segment, err := s.repo.CreateSegment(videoUUID, req.StartTime, req.EndTime, req.Text)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create segment: %w", err)
 	}
 
 	return &dto.SegmentResponse{

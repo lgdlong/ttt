@@ -134,6 +134,7 @@ func RegisterRoutes(
 				modVideos.GET("/:id/tags", tagHandler.GetVideoTags)
 				modVideos.POST("/:id/tags", tagHandler.AddTagToVideo)
 				modVideos.DELETE("/:id/tags/:tag_id", tagHandler.RemoveTagFromVideo)
+				modVideos.POST("/:id/transcript/segments", videoHandler.CreateSegment)
 			}
 		}
 	}

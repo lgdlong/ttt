@@ -17,6 +17,7 @@ type VideoRepository interface {
 	GetVideoByYoutubeID(youtubeID string) (*domain.Video, error)
 	GetVideoTranscript(videoID uuid.UUID) ([]domain.TranscriptSegment, error)
 	UpdateSegment(id uint, textContent string) (*domain.TranscriptSegment, error)
+	CreateSegment(videoID uuid.UUID, startTime, endTime int, text string) (*domain.TranscriptSegment, error)
 	Create(video *domain.Video) error
 	Update(video *domain.Video) error
 	Delete(id uuid.UUID) error // Soft delete
@@ -189,6 +190,22 @@ func (r *videoRepository) UpdateSegment(id uint, textContent string) (*domain.Tr
 	}
 
 	return &segment, nil
+}
+
+// CreateSegment creates a new transcript segment
+func (r *videoRepository) CreateSegment(videoID uuid.UUID, startTime, endTime int, text string) (*domain.TranscriptSegment, error) {
+	segment := &domain.TranscriptSegment{
+		VideoID:     videoID,
+		StartTime:   startTime,
+		EndTime:     endTime,
+		TextContent: text,
+	}
+
+	if err := r.db.Create(segment).Error; err != nil {
+		return nil, err
+	}
+
+	return segment, nil
 }
 
 // SearchTranscripts performs full-text search on transcript segments using tsvector

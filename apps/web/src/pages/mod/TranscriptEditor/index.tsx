@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Box, CircularProgress, Alert, Button, Snackbar } from '@mui/material'
-import { CheckCircle, Save } from '@mui/icons-material'
+import { CheckCircle, Save, Add } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { YouTubePlayer } from 'react-youtube'
@@ -11,6 +11,7 @@ import { useVideoSync } from './useVideoSync'
 import { useTranscriptEditor } from './useTranscriptEditor'
 import { VirtualTranscriptList } from './components/VirtualTranscriptList'
 import { useSubmitReview } from './hooks/useReviewMutation'
+import { AddSegmentDialog } from './components/AddSegmentDialog'
 
 export const TranscriptEditor: React.FC = () => {
   // State: kiểm soát scroll khi điều hướng
@@ -19,6 +20,7 @@ export const TranscriptEditor: React.FC = () => {
   const playerRef = useRef<YouTubePlayer | null>(null)
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState('')
+  const [addSegmentDialogOpen, setAddSegmentDialogOpen] = useState(false)
 
   // Fetch video metadata only (transcript fetched by VirtualTranscriptList)
   const {
@@ -138,6 +140,23 @@ export const TranscriptEditor: React.FC = () => {
           }}
         />
 
+        {/* Add Segment Button */}
+        <Button
+          variant="outlined"
+          color="primary"
+          size="large"
+          startIcon={<Add />}
+          onClick={() => setAddSegmentDialogOpen(true)}
+          sx={{
+            py: 1.5,
+            fontSize: '16px',
+            fontWeight: 600,
+            textTransform: 'none',
+          }}
+        >
+          Thêm Segment
+        </Button>
+
         {/* Review Action Button */}
         <Button
           variant="contained"
@@ -246,6 +265,15 @@ export const TranscriptEditor: React.FC = () => {
         message={snackbarMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
+
+      {/* Add Segment Dialog */}
+      {videoId && (
+        <AddSegmentDialog
+          open={addSegmentDialogOpen}
+          onClose={() => setAddSegmentDialogOpen(false)}
+          videoId={videoId}
+        />
+      )}
     </Box>
   )
 }
