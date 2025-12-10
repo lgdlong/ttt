@@ -15,6 +15,7 @@ interface TranscriptRowProps {
   onKeyDown: (e: React.KeyboardEvent, index: number) => void
   onEditStart: () => void
   style?: React.CSSProperties // For virtualization positioning
+  measureRef?: (node: Element | null) => void // For dynamic height measurement
 }
 
 const formatTime = (ms: number) => {
@@ -32,7 +33,7 @@ const formatTime = (ms: number) => {
  * - Virtualization-ready (absolute positioning support)
  */
 export const TranscriptRow = React.memo<TranscriptRowProps>(
-  ({ segment, index, isActive, onUpdate, onSeek, onKeyDown, onEditStart, style }) => {
+  ({ segment, index, isActive, onUpdate, onSeek, onKeyDown, onEditStart, style, measureRef }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     // CRITICAL: Local state - never triggers parent re-render while typing
@@ -89,6 +90,8 @@ export const TranscriptRow = React.memo<TranscriptRowProps>(
 
     return (
       <div
+        ref={measureRef}
+        data-index={index}
         style={{
           ...style,
           display: 'flex',
@@ -101,6 +104,7 @@ export const TranscriptRow = React.memo<TranscriptRowProps>(
           opacity: isActive ? 1 : 0.7,
           border: isActive ? '2px solid #1976d2' : '1px solid #e0e0e0',
           cursor: 'text',
+          boxSizing: 'border-box',
         }}
         onClick={() => textareaRef.current?.focus()}
       >

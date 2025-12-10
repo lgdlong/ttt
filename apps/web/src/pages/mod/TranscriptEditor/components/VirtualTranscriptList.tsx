@@ -184,12 +184,12 @@ export const VirtualTranscriptList: React.FC<VirtualTranscriptListProps> = ({
               onSeek={handleSeek}
               onKeyDown={onKeyDown}
               onEditStart={onEditStart}
+              measureRef={rowVirtualizer.measureElement}
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: '60px', // enforce fixed height
                 transform: `translateY(${virtualItem.start}px)`,
                 boxSizing: 'border-box',
               }}
