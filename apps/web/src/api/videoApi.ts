@@ -12,11 +12,14 @@ import type {
   ErrorResponse,
 } from '~/types/video'
 
-const API_URL = import.meta.env.VITE_API_URL + (import.meta.env.VITE_API_TAG || '/api/v1')
+// Video API uses v1 endpoints (legacy)
+const API_URL = import.meta.env.VITE_API_URL + (import.meta.env.VITE_API_TAG || '/api') + '/v1'
 
 /**
  * Video API Service
  * Handles all video-related API calls to backend
+ *
+ * Version: V1 (legacy)
  */
 
 // Create axios instance with default config

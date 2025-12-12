@@ -19,20 +19,20 @@ export interface ModStatsResponse {
 
 /**
  * Get admin dashboard statistics
- * GET /api/v1/admin/stats
+ * GET /api/v1/admin/stats (v1 - legacy)
  * Requires admin role
  */
 export async function getAdminStats(): Promise<AdminStatsResponse> {
-  const response = await axiosInstance.get<AdminStatsResponse>('/admin/stats')
+  const response = await axiosInstance.get<AdminStatsResponse>('/v1/admin/stats')
   return response.data
 }
 
 /**
  * Get moderator dashboard statistics
- * GET /api/v1/mod/stats
+ * GET /api/v1/mod/stats (v1 - legacy)
  * Requires mod or admin role
  */
 export async function getModStats(): Promise<ModStatsResponse> {
-  const response = await axiosInstance.get<ModStatsResponse>('/mod/stats')
+  const response = await axiosInstance.get<ModStatsResponse>('/v1/mod/stats')
   return response.data
 }

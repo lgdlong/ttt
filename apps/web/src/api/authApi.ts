@@ -13,12 +13,15 @@ import type {
 } from '~/types/user'
 import type { ErrorResponse } from '~/types/video'
 
-const API_URL = import.meta.env.VITE_API_URL + (import.meta.env.VITE_API_TAG || '/api/v1')
+// Auth API uses v1 endpoints (legacy)
+const API_URL = import.meta.env.VITE_API_URL + (import.meta.env.VITE_API_TAG || '/api') + '/v1'
 
 /**
  * Auth & User API Service
  * Handles authentication and user management API calls
  * Uses cookies for token storage (httpOnly cookies set by backend)
+ *
+ * Version: V1 (legacy)
  */
 
 // Create axios instance with default config
