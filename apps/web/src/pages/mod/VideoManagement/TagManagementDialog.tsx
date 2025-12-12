@@ -24,7 +24,7 @@ interface TagManagementDialogProps {
   tagToAdd: TagResponse | null
   onTagToAddChange: (tag: TagResponse | null) => void
   onAddTag: () => void
-  onRemoveTag: (tagId: number) => void
+  onRemoveTag: (tagId: string) => void
   isAdding: boolean
 }
 
@@ -64,7 +64,7 @@ export const TagManagementDialog: React.FC<TagManagementDialogProps> = ({
                   key={tag.id}
                   label={tag.name}
                   size="small"
-                  onDelete={() => onRemoveTag(tag.id)}
+                  onDelete={() => onRemoveTag(tag.id as unknown as string)}
                   sx={{ borderRadius: 0, mb: 1 }}
                 />
               ))}

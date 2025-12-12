@@ -69,7 +69,7 @@ export const AddVideoDialog: React.FC<AddVideoDialogProps> = ({
     }
     onSave(
       previewVideo.youtube_id,
-      selectedTags.map((t) => t.id)
+      undefined // Tags managed separately via tag management
     )
   }, [previewVideo, selectedTags, onSave])
 
