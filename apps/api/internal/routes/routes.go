@@ -113,15 +113,8 @@ func RegisterRoutes(
 			// Statistics
 			mod.GET("/stats", statsHandler.GetModStats)
 
-			// Tag management
-			modTags := mod.Group("/tags")
-			{
-				modTags.GET("", tagHandler.ListTags)
-				modTags.POST("", tagHandler.CreateTag)
-				modTags.GET("/:id", tagHandler.GetTag)
-				modTags.PUT("/:id", tagHandler.UpdateTag)
-				modTags.DELETE("/:id", tagHandler.DeleteTag)
-			}
+			// Tag management (REMOVED - use /api/v2/mod/tags)
+			// Legacy Tag V1 routes removed, all tag operations moved to V2 API
 
 			// Video management
 			modVideos := mod.Group("/videos")
@@ -131,10 +124,36 @@ func RegisterRoutes(
 				modVideos.GET("/preview/:id", videoHandler.PreviewVideo)
 				modVideos.POST("", videoHandler.CreateVideo)
 				modVideos.DELETE("/:id", videoHandler.DeleteVideo)
-				modVideos.GET("/:id/tags", tagHandler.GetVideoTags)
-				modVideos.POST("/:id/tags", tagHandler.AddTagToVideo)
-				modVideos.DELETE("/:id/tags/:tag_id", tagHandler.RemoveTagFromVideo)
+				// Legacy Tag V1 routes removed - use /api/v2/mod/videos/:id/tags
 				modVideos.POST("/:id/transcript/segments", videoHandler.CreateSegment)
+			}
+		}
+	}
+
+	// API v2 group - Canonical-Alias Tag Architecture
+	v2 := router.Group("/api/v2")
+	{
+		// Mod endpoints - requires mod or admin role
+		mod := v2.Group("/mod")
+		mod.Use(middleware.AuthMiddleware(userRepo))
+		mod.Use(middleware.RequireMod())
+		{
+			// Canonical Tag management (v2)
+			modTags := mod.Group("/tags")
+			{
+				modTags.GET("", tagHandler.ListCanonicalTags)          // List all canonical tags
+				modTags.POST("", tagHandler.CreateCanonicalTag)        // Create with auto-resolution
+				modTags.POST("/merge", tagHandler.MergeTags)           // Manually merge source into target
+				modTags.GET("/search", tagHandler.SearchCanonicalTags) // Search canonical tags
+				modTags.GET("/:id", tagHandler.GetCanonicalTag)        // Get by ID
+			}
+
+			// Video-Tag management (v2 - uses canonical tags)
+			modVideos := mod.Group("/videos")
+			{
+				modVideos.GET("/:id/tags", tagHandler.GetVideoCanonicalTags)                  // Get video's canonical tags
+				modVideos.POST("/:id/tags", tagHandler.AddCanonicalTagToVideo)                // Add tag with auto-resolution
+				modVideos.DELETE("/:id/tags/:tag_id", tagHandler.RemoveCanonicalTagFromVideo) // Remove canonical tag
 			}
 		}
 	}

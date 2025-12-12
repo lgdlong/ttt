@@ -66,11 +66,11 @@ func (s *videoService) GetModVideoList(page, pageSize int, searchQuery, tagIDsSt
 	// Convert to mod DTOs with tags
 	result := make([]dto.ModVideoResponse, len(videos))
 	for i, video := range videos {
-		tags := make([]dto.TagResponse, len(video.Tags))
-		for j, tag := range video.Tags {
+		tags := make([]dto.TagResponse, len(video.CanonicalTags))
+		for j, tag := range video.CanonicalTags {
 			tags[j] = dto.TagResponse{
 				ID:   tag.ID.String(),
-				Name: tag.Name,
+				Name: tag.DisplayName,
 			}
 		}
 
@@ -280,11 +280,11 @@ func (s *videoService) toVideoCardResponse(video *domain.Video) dto.VideoCardRes
 
 // Helper: Convert domain.Video to dto.VideoDetailResponse
 func (s *videoService) toVideoDetailResponse(video *domain.Video) *dto.VideoDetailResponse {
-	tags := make([]dto.TagResponse, len(video.Tags))
-	for i, tag := range video.Tags {
+	tags := make([]dto.TagResponse, len(video.CanonicalTags))
+	for i, tag := range video.CanonicalTags {
 		tags[i] = dto.TagResponse{
 			ID:   tag.ID.String(),
-			Name: tag.Name,
+			Name: tag.DisplayName,
 		}
 	}
 

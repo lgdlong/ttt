@@ -20,6 +20,21 @@ type TagResponse struct {
 	Name string `json:"name"`
 }
 
+// CanonicalTagResponse - Canonical tag response with alias metadata
+type CanonicalTagResponse struct {
+	ID           string  `json:"id"`                      // Canonical tag ID
+	Name         string  `json:"name"`                    // Display name (canonical)
+	MatchedAlias *string `json:"matched_alias,omitempty"` // Original user input (for UI feedback)
+}
+
+// TagDuplicateResponse - Response when a similar tag already exists
+type TagDuplicateResponse struct {
+	ExistingTag TagResponse   `json:"existing_tag"`
+	Message     string        `json:"message"`
+	Similarity  float64       `json:"similarity"`  // 0.0 to 1.0
+	Suggestions []TagResponse `json:"suggestions"` // Gợi ý các tag gần nhất
+}
+
 // TagListRequest - Request params for listing tags
 type TagListRequest struct {
 	Page  int    `form:"page" binding:"omitempty,min=1" default:"1"`
@@ -44,6 +59,22 @@ type AddVideoTagRequest struct {
 // RemoveVideoTagRequest - Request to remove a tag from a video
 type RemoveVideoTagRequest struct {
 	TagID string `json:"tag_id" binding:"required"`
+}
+
+// ============ Tag Merge DTOs ============
+
+// MergeTagsRequest - Request to manually merge source tag into target tag
+// Source tag becomes an alias pointing to target canonical tag
+type MergeTagsRequest struct {
+	SourceID string `json:"source_id" binding:"required,uuid"` // Tag to be merged (will become alias)
+	TargetID string `json:"target_id" binding:"required,uuid"` // Target canonical tag (will remain)
+}
+
+// MergeTagsResponse - Response after merging tags
+type MergeTagsResponse struct {
+	TargetTag        TagResponse `json:"target_tag"`         // The canonical tag that remains
+	MergedAliasCount int         `json:"merged_alias_count"` // Number of aliases moved
+	SourceTagDeleted bool        `json:"source_tag_deleted"` // Whether source canonical was deleted
 }
 
 // ============ Video Create/Delete DTOs ============

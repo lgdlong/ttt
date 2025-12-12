@@ -296,229 +296,6 @@
                 }
             }
         },
-        "/mod/tags": {
-            "get": {
-                "description": "Get paginated list of tags with optional search",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tags"
-                ],
-                "summary": "List tags",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Search query",
-                        "name": "query",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.TagListResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new tag (mod/admin only)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tags"
-                ],
-                "summary": "Create a new tag",
-                "parameters": [
-                    {
-                        "description": "Tag data",
-                        "name": "tag",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateTagRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.TagResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Tag already exists",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/mod/tags/{id}": {
-            "get": {
-                "description": "Get tag details by tag ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tags"
-                ],
-                "summary": "Get tag by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Tag ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.TagResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update tag information (mod/admin only)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tags"
-                ],
-                "summary": "Update tag",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Tag ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Updated tag data",
-                        "name": "tag",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UpdateTagRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.TagResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Tag name already exists",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a tag (mod/admin only)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tags"
-                ],
-                "summary": "Delete tag",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Tag ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/mod/videos": {
             "get": {
                 "description": "Get paginated videos for mod/admin dashboard with tag information",
@@ -765,48 +542,9 @@
                 }
             }
         },
-        "/mod/videos/{id}/tags": {
-            "get": {
-                "description": "Get all tags for a video",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Videos"
-                ],
-                "summary": "Get video tags",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Video ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.TagResponse"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            },
+        "/mod/videos/{id}/transcript/segments": {
             "post": {
-                "description": "Add a tag to a video. Creates tag if tag_name provided and doesn't exist.",
+                "description": "Add a new transcript segment to a video",
                 "consumes": [
                     "application/json"
                 ],
@@ -816,7 +554,7 @@
                 "tags": [
                     "Videos"
                 ],
-                "summary": "Add tag to video",
+                "summary": "Create new transcript segment",
                 "parameters": [
                     {
                         "type": "string",
@@ -826,20 +564,20 @@
                         "required": true
                     },
                     {
-                        "description": "Tag info (provide tag_id OR tag_name)",
+                        "description": "Segment data",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.AddVideoTagRequest"
+                            "$ref": "#/definitions/dto.CreateSegmentRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.TagResponse"
+                            "$ref": "#/definitions/dto.SegmentResponse"
                         }
                     },
                     "400": {
@@ -847,48 +585,6 @@
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/mod/videos/{id}/tags/{tag_id}": {
-            "delete": {
-                "description": "Remove a tag from a video",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Videos"
-                ],
-                "summary": "Remove tag from video",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Video ID (UUID)",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Tag ID (UUID)",
-                        "name": "tag_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
                     },
                     "404": {
                         "description": "Not Found",
@@ -1295,6 +991,373 @@
                 }
             }
         },
+        "/v2/mod/tags": {
+            "get": {
+                "description": "Get paginated list of canonical tags with optional search",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "List canonical tags",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TagListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a canonical tag using 4-layer resolution. Automatically merges similar tags.\nReturns existing tag if semantically similar (\u003e85% similarity).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Create a new canonical tag (v2 - with auto-resolution)",
+                "parameters": [
+                    {
+                        "description": "Tag data",
+                        "name": "tag",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateTagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Existing similar tag returned (auto-merged)",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CanonicalTagResponse"
+                        }
+                    },
+                    "201": {
+                        "description": "Tag created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CanonicalTagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/mod/tags/merge": {
+            "post": {
+                "description": "Manually merge source tag into target tag. Source becomes an alias of target.\nAll aliases and video relationships are transferred to target.\nSource canonical tag is deleted after merge.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Manually merge tags",
+                "parameters": [
+                    {
+                        "description": "Source and target tag IDs",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.MergeTagsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Merge successful",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or tags are the same",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Source or target tag not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/mod/tags/search": {
+            "get": {
+                "description": "Search canonical tags by name (hybrid: SQL LIKE + Vector similarity)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Search canonical tags",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Max results",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.TagResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/mod/tags/{id}": {
+            "get": {
+                "description": "Get canonical tag details by tag ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Get canonical tag by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Canonical Tag ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TagResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/mod/videos/{id}/tags": {
+            "get": {
+                "description": "Get all canonical tags for a video",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Videos"
+                ],
+                "summary": "Get video canonical tags",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.TagResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add a tag to a video using 4-layer resolution. Automatically merges similar tags.\nNo 409 conflict errors - system handles duplicates transparently.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Videos"
+                ],
+                "summary": "Add canonical tag to video (with auto-resolution)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Tag info (provide tag_id OR tag_name)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddVideoTagRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag added successfully (may be auto-merged)",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CanonicalTagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v2/mod/videos/{id}/tags/{tag_id}": {
+            "delete": {
+                "description": "Remove a canonical tag from a video",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Videos"
+                ],
+                "summary": "Remove canonical tag from video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Canonical Tag ID (UUID)",
+                        "name": "tag_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/videos": {
             "get": {
                 "description": "Get a paginated list of videos with optional filtering and sorting",
@@ -1404,6 +1467,176 @@
                 }
             }
         },
+        "/videos/{id}/reviews": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Moderator submits a review after verifying video transcript. Awards points and updates video status if threshold met.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Video Reviews"
+                ],
+                "summary": "Submit transcript review for a video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional review notes",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubmitReviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.VideoTranscriptReviewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or user already reviewed",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Video not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/videos/{id}/reviews/stats": {
+            "get": {
+                "description": "Get the number of reviews for a specific video",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Video Reviews"
+                ],
+                "summary": "Get review statistics for a video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns {video_id, review_count}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/videos/{id}/reviews/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Check whether the authenticated user has already reviewed a specific video",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Video Reviews"
+                ],
+                "summary": "Check if user has reviewed a video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Video ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns {video_id, has_reviewed}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/videos/{id}/transcript": {
             "get": {
                 "description": "Get all transcript segments for a specific video",
@@ -1444,6 +1677,50 @@
         }
     },
     "definitions": {
+        "dto.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Response payload (nil for errors)"
+                },
+                "error": {
+                    "description": "Error details (nil for success)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.ErrorDetail"
+                        }
+                    ]
+                },
+                "message": {
+                    "description": "Human-readable message",
+                    "type": "string"
+                },
+                "metadata": {
+                    "description": "Additional context",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.Metadata"
+                        }
+                    ]
+                },
+                "request_id": {
+                    "description": "For distributed tracing",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "success/created/merged/error/conflict",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.ResponseStatus"
+                        }
+                    ]
+                },
+                "timestamp": {
+                    "description": "Response timestamp (ISO 8601)",
+                    "type": "string"
+                }
+            }
+        },
         "dto.AddVideoTagRequest": {
             "type": "object",
             "properties": {
@@ -1466,6 +1743,46 @@
                 },
                 "user": {
                     "$ref": "#/definitions/dto.UserResponse"
+                }
+            }
+        },
+        "dto.CanonicalTagResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "Canonical tag ID",
+                    "type": "string"
+                },
+                "matched_alias": {
+                    "description": "Original user input (for UI feedback)",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Display name (canonical)",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateSegmentRequest": {
+            "type": "object",
+            "required": [
+                "end_time",
+                "start_time",
+                "text"
+            ],
+            "properties": {
+                "end_time": {
+                    "description": "Milliseconds, must be \u003e StartTime",
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "Milliseconds",
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "text": {
+                    "type": "string",
+                    "minLength": 1
                 }
             }
         },
@@ -1530,6 +1847,26 @@
                 }
             }
         },
+        "dto.ErrorDetail": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "Machine-readable error code (e.g., \"TAG_DUPLICATE\")",
+                    "type": "string"
+                },
+                "details": {
+                    "description": "Additional context (e.g., suggestions)"
+                },
+                "field": {
+                    "description": "Field name for validation errors",
+                    "type": "string"
+                },
+                "message": {
+                    "description": "Human-readable error message",
+                    "type": "string"
+                }
+            }
+        },
         "dto.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -1564,6 +1901,84 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.MergeTagsRequest": {
+            "type": "object",
+            "required": [
+                "source_id",
+                "target_id"
+            ],
+            "properties": {
+                "source_id": {
+                    "description": "Tag to be merged (will become alias)",
+                    "type": "string"
+                },
+                "target_id": {
+                    "description": "Target canonical tag (will remain)",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Metadata": {
+            "type": "object",
+            "properties": {
+                "auto_merged": {
+                    "description": "true if auto-merged with existing",
+                    "type": "boolean"
+                },
+                "canonical_name": {
+                    "description": "Canonical/normalized name",
+                    "type": "string"
+                },
+                "is_new_resource": {
+                    "description": "Tag operation metadata",
+                    "type": "boolean"
+                },
+                "layer_hit": {
+                    "description": "Which resolution layer matched (1/1.5/2/3/4)",
+                    "type": "integer"
+                },
+                "matched_via": {
+                    "description": "How match was found: \"exact\"|\"translation\"|\"vector\"|\"new\"",
+                    "type": "string"
+                },
+                "merged_into": {
+                    "description": "ID of resource merged into",
+                    "type": "string"
+                },
+                "original_input": {
+                    "description": "User's original input",
+                    "type": "string"
+                },
+                "pagination": {
+                    "description": "Pagination metadata (for list endpoints)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.PaginationMetadata"
+                        }
+                    ]
+                },
+                "processing_time_ms": {
+                    "description": "Performance metadata",
+                    "type": "integer"
+                },
+                "similarity_score": {
+                    "description": "Vector similarity score (0.0-1.0)",
+                    "type": "number"
+                },
+                "translated_from": {
+                    "description": "Original language input",
+                    "type": "string"
+                },
+                "translated_to": {
+                    "description": "Translated English term",
+                    "type": "string"
+                },
+                "translation_used": {
+                    "description": "true if Translation Layer was used",
+                    "type": "boolean"
                 }
             }
         },
@@ -1648,6 +2063,45 @@
                 }
             }
         },
+        "dto.ResponseStatus": {
+            "type": "string",
+            "enum": [
+                "success",
+                "created",
+                "merged",
+                "error",
+                "not_found",
+                "conflict",
+                "invalid"
+            ],
+            "x-enum-comments": {
+                "StatusConflict": "Business logic conflict (HTTP 409)",
+                "StatusCreated": "New resource created (HTTP 201)",
+                "StatusError": "Generic error",
+                "StatusInvalid": "Invalid input (HTTP 400)",
+                "StatusMerged": "Resource auto-merged with existing (tag deduplication)",
+                "StatusNotFound": "Resource not found (HTTP 404)",
+                "StatusSuccess": "Operation completed successfully"
+            },
+            "x-enum-descriptions": [
+                "Operation completed successfully",
+                "New resource created (HTTP 201)",
+                "Resource auto-merged with existing (tag deduplication)",
+                "Generic error",
+                "Resource not found (HTTP 404)",
+                "Business logic conflict (HTTP 409)",
+                "Invalid input (HTTP 400)"
+            ],
+            "x-enum-varnames": [
+                "StatusSuccess",
+                "StatusCreated",
+                "StatusMerged",
+                "StatusError",
+                "StatusNotFound",
+                "StatusConflict",
+                "StatusInvalid"
+            ]
+        },
         "dto.SegmentResponse": {
             "type": "object",
             "properties": {
@@ -1714,6 +2168,16 @@
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "dto.SubmitReviewRequest": {
+            "type": "object",
+            "properties": {
+                "notes": {
+                    "description": "Optional: Add any review metadata if needed in future",
+                    "type": "string",
+                    "maxLength": 500
                 }
             }
         },
@@ -1849,19 +2313,6 @@
                 }
             }
         },
-        "dto.UpdateTagRequest": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 1
-                }
-            }
-        },
         "dto.UpdateUserRequest": {
             "type": "object",
             "properties": {
@@ -1955,6 +2406,10 @@
                 "published_at": {
                     "type": "string"
                 },
+                "review_count": {
+                    "description": "Number of reviews - show \"Đã duyệt\" badge if \u003e 0",
+                    "type": "integer"
+                },
                 "thumbnail_url": {
                     "type": "string"
                 },
@@ -2018,6 +2473,10 @@
                 "published_at": {
                     "type": "string"
                 },
+                "review_count": {
+                    "description": "Number of reviews - show \"Đã duyệt\" badge if \u003e 0",
+                    "type": "integer"
+                },
                 "tags": {
                     "type": "array",
                     "items": {
@@ -2049,6 +2508,39 @@
                 },
                 "pagination": {
                     "$ref": "#/definitions/dto.PaginationMetadata"
+                }
+            }
+        },
+        "dto.VideoTranscriptReviewResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "description": "Human-readable status message",
+                    "type": "string"
+                },
+                "points_awarded": {
+                    "description": "Points given to reviewer",
+                    "type": "integer"
+                },
+                "reviewed_at": {
+                    "type": "string"
+                },
+                "total_reviews": {
+                    "description": "Total reviews for this video",
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "video_id": {
+                    "type": "string"
+                },
+                "video_status": {
+                    "description": "Current video status (e.g., \"PUBLISHED\")",
+                    "type": "string"
                 }
             }
         },

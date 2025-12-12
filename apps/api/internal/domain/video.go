@@ -20,8 +20,8 @@ type Video struct {
 	// Relationship 1-N: Subtitles
 	Segments []TranscriptSegment `gorm:"foreignKey:VideoID;constraint:OnDelete:CASCADE;"`
 
-	// Relationship N-N: Tags (GORM tự xử lý bảng trung gian video_tags)
-	Tags []Tag `gorm:"many2many:video_tags;"`
+	// Relationship N-N: CanonicalTags (GORM tự xử lý bảng trung gian video_canonical_tags)
+	CanonicalTags []CanonicalTag `gorm:"many2many:video_canonical_tags;"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

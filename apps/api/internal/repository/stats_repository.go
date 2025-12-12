@@ -45,10 +45,10 @@ func (r *statsRepository) GetTotalVideos() (int64, error) {
 	return count, err
 }
 
-// GetTotalTags returns total number of tags
+// GetTotalTags returns total number of canonical tags
 func (r *statsRepository) GetTotalTags() (int64, error) {
 	var count int64
-	err := r.db.Model(&domain.Tag{}).Count(&count).Error
+	err := r.db.Model(&domain.CanonicalTag{}).Count(&count).Error
 	return count, err
 }
 

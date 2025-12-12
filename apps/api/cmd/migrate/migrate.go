@@ -60,11 +60,34 @@ func Migrate() error {
 	}
 	log.Println("✓ Video table migrated")
 
+	// Clean up orphan transcript_segments before adding FK constraint
+	cleanOrphanSQL := `
+		DELETE FROM transcript_segments 
+		WHERE video_id NOT IN (SELECT id FROM videos)
+	`
+	if err := gormDB.Exec(cleanOrphanSQL).Error; err != nil {
+		log.Printf("⚠ Warning: Could not clean orphan transcript_segments: %v", err)
+	} else {
+		log.Println("✓ Orphan transcript_segments cleaned")
+	}
+
 	// Migrate TranscriptSegment (TSV field is ignored, will add manually)
 	if err := gormDB.AutoMigrate(&domain.TranscriptSegment{}); err != nil {
 		return fmt.Errorf("migration failed for TranscriptSegment: %w", err)
 	}
 	log.Println("✓ TranscriptSegment table migrated")
+
+	// Clean up orphan video_transcript_reviews before adding FK constraints
+	cleanReviewsSQL := `
+		DELETE FROM video_transcript_reviews 
+		WHERE video_id NOT IN (SELECT id FROM videos)
+		   OR user_id NOT IN (SELECT id FROM users)
+	`
+	if err := gormDB.Exec(cleanReviewsSQL).Error; err != nil {
+		log.Printf("⚠ Warning: Could not clean orphan video_transcript_reviews: %v", err)
+	} else {
+		log.Println("✓ Orphan video_transcript_reviews cleaned")
+	}
 
 	// Migrate VideoTranscriptReview
 	if err := gormDB.AutoMigrate(&domain.VideoTranscriptReview{}); err != nil {
@@ -72,25 +95,20 @@ func Migrate() error {
 	}
 	log.Println("✓ VideoTranscriptReview table migrated")
 
-	// Migrate Tag (requires pgvector extension for Embedding field)
-	if err := gormDB.AutoMigrate(&domain.Tag{}); err != nil {
-		log.Printf("⚠ Warning: Tag migration failed (pgvector may not be installed): %v", err)
-		// Try to create Tag table without Embedding column
-		createTagSQL := `
-			CREATE TABLE IF NOT EXISTS tags (
-				id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-				name VARCHAR(100) UNIQUE NOT NULL
-			)
-		`
-		if err := gormDB.Exec(createTagSQL).Error; err != nil {
-			return fmt.Errorf("failed to create tags table: %w", err)
-		}
-		log.Println("✓ Tag table created (without Embedding column)")
-	} else {
-		log.Println("✓ Tag table migrated")
-	}
+	// Migrate CanonicalTag (new canonical-alias architecture)
+	// First, drop old constraint if it exists (for idempotency)
+	gormDB.Exec("ALTER TABLE IF EXISTS canonical_tags DROP CONSTRAINT IF EXISTS uni_canonical_tags_slug")
 
-	log.Println("✓ All models migrated successfully")
+	if err := gormDB.AutoMigrate(&domain.CanonicalTag{}); err != nil {
+		return fmt.Errorf("migration failed for CanonicalTag: %w", err)
+	}
+	log.Println("✓ CanonicalTag table migrated")
+
+	// Migrate TagAlias (new canonical-alias architecture)
+	if err := gormDB.AutoMigrate(&domain.TagAlias{}); err != nil {
+		return fmt.Errorf("migration failed for TagAlias: %w", err)
+	}
+	log.Println("✓ TagAlias table migrated")
 
 	// Migrate User model
 	if err := gormDB.AutoMigrate(&domain.User{}); err != nil {
@@ -182,13 +200,20 @@ func createIndexes(db *gorm.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_transcript_segments_video_id_start_time ON transcript_segments(video_id, start_time)",
 		"CREATE INDEX IF NOT EXISTS idx_videos_youtube_id ON videos(youtube_id)",
 		"CREATE INDEX IF NOT EXISTS idx_videos_published_at ON videos(published_at)",
-		"CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name)",
 		"CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
 		"CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)",
 		"CREATE INDEX IF NOT EXISTS idx_social_accounts_provider_id ON social_accounts(provider, provider_id)",
 		"CREATE INDEX IF NOT EXISTS idx_social_accounts_user_id ON social_accounts(user_id)",
 		"CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)",
 		"CREATE INDEX IF NOT EXISTS idx_sessions_refresh_token ON sessions(refresh_token)",
+		// Canonical-Alias architecture indexes
+		"CREATE INDEX IF NOT EXISTS idx_canonical_tags_slug ON canonical_tags(slug)",
+		"CREATE INDEX IF NOT EXISTS idx_canonical_tags_display_name ON canonical_tags(display_name)",
+		"CREATE INDEX IF NOT EXISTS idx_tag_aliases_canonical_tag_id ON tag_aliases(canonical_tag_id)",
+		"CREATE INDEX IF NOT EXISTS idx_tag_aliases_normalized ON tag_aliases(normalized_text)",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_aliases_normalized_unique ON tag_aliases(normalized_text)",
+		"CREATE INDEX IF NOT EXISTS idx_video_canonical_tags_video_id ON video_canonical_tags(video_id)",
+		"CREATE INDEX IF NOT EXISTS idx_video_canonical_tags_canonical_tag_id ON video_canonical_tags(canonical_tag_id)",
 	}
 
 	for _, idx := range btreeIndexes {
@@ -206,14 +231,12 @@ func createIndexes(db *gorm.DB) error {
 		log.Println("  ✓ GIN index for Full Text Search created")
 	}
 
-	// IVFFlat index for vector similarity search on tags.embedding (RECOMMENDED)
-	// IVFFlat is faster for approximate nearest neighbor search
-	// lists = sqrt(number of rows), start with 100 for small datasets
-	vectorIndexSQL := `CREATE INDEX IF NOT EXISTS idx_tags_embedding ON tags USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)`
-	if err := db.Exec(vectorIndexSQL).Error; err != nil {
-		log.Printf("Warning: failed to create vector index (pgvector may not be installed): %v", err)
+	// HNSW vector index for semantic search on tag_aliases.embedding (Canonical-Alias)
+	hswVectorIndexSQL := `CREATE INDEX IF NOT EXISTS idx_tag_aliases_embedding_hnsw ON tag_aliases USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)`
+	if err := db.Exec(hswVectorIndexSQL).Error; err != nil {
+		log.Printf("Warning: failed to create HNSW vector index for tag_aliases (pgvector may not be installed): %v", err)
 	} else {
-		log.Println("  ✓ IVFFlat vector index for tags.embedding created")
+		log.Println("  ✓ HNSW vector index for tag_aliases.embedding created")
 	}
 
 	return nil
@@ -278,7 +301,9 @@ func Rollback() error {
 		&domain.User{},
 		&domain.TranscriptSegment{},
 		&domain.Video{},
-		&domain.Tag{},
+		&domain.VideoTranscriptReview{},
+		&domain.TagAlias{},
+		&domain.CanonicalTag{},
 	).Error; err != nil {
 		return fmt.Errorf("rollback failed: %w", err)
 	}
@@ -295,12 +320,14 @@ func Status() error {
 	log.Println("\n=== Database Migration Status ===")
 
 	models := map[string]interface{}{
-		"users":               &domain.User{},
-		"social_accounts":     &domain.SocialAccount{},
-		"sessions":            &domain.Session{},
-		"videos":              &domain.Video{},
-		"transcript_segments": &domain.TranscriptSegment{},
-		"tags":                &domain.Tag{},
+		"users":                    &domain.User{},
+		"social_accounts":          &domain.SocialAccount{},
+		"sessions":                 &domain.Session{},
+		"videos":                   &domain.Video{},
+		"transcript_segments":      &domain.TranscriptSegment{},
+		"video_transcript_reviews": &domain.VideoTranscriptReview{},
+		"canonical_tags":           &domain.CanonicalTag{},
+		"tag_aliases":              &domain.TagAlias{},
 	}
 
 	for name, model := range models {

@@ -11,6 +11,7 @@ import (
 
 	"api/internal/database"
 	"api/internal/handler"
+	"api/internal/infrastructure"
 	"api/internal/repository"
 	"api/internal/routes"
 	"api/internal/service"
@@ -49,12 +50,19 @@ func NewServer() *http.Server {
 	router := gin.New()
 
 	// Initialize dependency injection chain
+	// Infrastructure layer
+	openAIClient, err := infrastructure.NewOpenAIClient()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize OpenAI client - vector search will be disabled")
+		openAIClient = nil // Continue without AI features
+	}
+
 	// Repository layer
 	videoRepo := repository.NewVideoRepository(dbService.GetGormDB())
 	userRepo := repository.NewUserRepository(dbService.GetGormDB())
 	socialAccountRepo := repository.NewSocialAccountRepository(dbService.GetGormDB())
 	sessionRepo := repository.NewSessionRepository(dbService.GetGormDB())
-	tagRepo := repository.NewTagRepository(dbService.GetGormDB())
+	tagRepo := repository.NewTagRepository(dbService.GetGormDB(), openAIClient)
 	statsRepo := repository.NewStatsRepository(dbService.GetGormDB())
 	reviewRepo := repository.NewVideoTranscriptReviewRepository(dbService.GetGormDB())
 
@@ -63,6 +71,7 @@ func NewServer() *http.Server {
 	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(userRepo, socialAccountRepo, sessionRepo)
 	tagService := service.NewTagService(tagRepo, videoRepo)
+	tagServiceV2 := service.NewTagServiceV2(tagRepo, videoRepo)
 	statsService := service.NewStatsService(statsRepo)
 	reviewService := service.NewVideoTranscriptReviewService(reviewRepo, videoRepo, userRepo)
 
@@ -72,7 +81,7 @@ func NewServer() *http.Server {
 	systemHandler := handler.NewSystemHandler()
 	userHandler := handler.NewUserHandler(userService)
 	authHandler := handler.NewAuthHandler(authService)
-	tagHandler := handler.NewTagHandler(tagService)
+	tagHandler := handler.NewTagHandler(tagService, tagServiceV2)
 	statsHandler := handler.NewStatsHandler(statsService)
 	reviewHandler := handler.NewVideoTranscriptReviewHandler(reviewService)
 

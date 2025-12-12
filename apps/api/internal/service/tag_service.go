@@ -1,28 +1,16 @@
 package service
 
 import (
-	"api/internal/domain"
-	"api/internal/dto"
 	"api/internal/repository"
-	"fmt"
-	"math"
-
-	"github.com/google/uuid"
 )
 
-type TagService interface {
-	// Tag CRUD
-	CreateTag(req dto.CreateTagRequest) (*dto.TagResponse, error)
-	GetTagByID(id string) (*dto.TagResponse, error)
-	UpdateTag(id string, req dto.UpdateTagRequest) (*dto.TagResponse, error)
-	DeleteTag(id string) error
-	ListTags(req dto.TagListRequest) (*dto.TagListResponse, error)
-	SearchTags(query string, limit int) ([]dto.TagResponse, error)
+// SemanticDuplicateError - REMOVED (legacy Tag V1 struct)
 
-	// Video-Tag management
-	AddTagToVideo(videoID string, req dto.AddVideoTagRequest) (*dto.TagResponse, error)
-	RemoveTagFromVideo(videoID, tagID string) error
-	GetVideoTags(videoID string) ([]dto.TagResponse, error)
+type TagService interface {
+	// ============================================================
+	// Legacy Tag CRUD - REMOVED (use Tag V2 API)
+	// ============================================================
+	// All legacy Tag methods removed to enforce CanonicalTag + TagAlias architecture
 }
 
 type tagService struct {
@@ -37,21 +25,80 @@ func NewTagService(tagRepo repository.TagRepository, videoRepo repository.VideoR
 	}
 }
 
-// CreateTag creates a new tag
-func (s *tagService) CreateTag(req dto.CreateTagRequest) (*dto.TagResponse, error) {
-	// Check if tag with same name exists
+/*
+// ============================================================
+// Legacy Tag Service Methods - REMOVED (use Tag V2 API)
+// ============================================================
+
+// CreateTag creates a new tag with semantic deduplication
+// Flow: 1) Generate embedding → 2) Check similarity → 3) Create or return duplicate error
+func (s *tagService) CreateTag(ctx context.Context, req dto.CreateTagRequest) (*dto.TagResponse, error) {
+	// Step 1: Check exact name match first (cheap operation)
+	fmt.Printf("[TAG_SERVICE] Step 1: Checking exact name match for '%s'...\n", req.Name)
 	if existing, _ := s.tagRepo.GetByName(req.Name); existing != nil {
-		return nil, fmt.Errorf("tag with name '%s' already exists", req.Name)
+		errMsg := fmt.Sprintf("tag with name '%s' already exists", req.Name)
+		fmt.Printf("[TAG_SERVICE] ✗ Exact match found: %s\n", errMsg)
+		return nil, fmt.Errorf(errMsg)
+	}
+	fmt.Printf("[TAG_SERVICE] ✓ No exact name match\n")
+
+	// Step 2: Generate embedding for the new tag name
+	fmt.Printf("[TAG_SERVICE] Step 2: Generating embedding...\n")
+	embedding, err := s.tagRepo.GetEmbeddingForText(ctx, req.Name)
+	if err != nil {
+		fmt.Printf("[TAG_SERVICE] ⚠ OpenAI unavailable: %v, creating tag without semantic check\n", err)
+		// If OpenAI unavailable, proceed without semantic check
+		tag := &domain.Tag{Name: req.Name}
+		if createErr := s.tagRepo.Create(ctx, tag); createErr != nil {
+			return nil, fmt.Errorf("failed to create tag: %w", createErr)
+		}
+		return s.toTagResponse(tag), nil
+	}
+	fmt.Printf("[TAG_SERVICE] ✓ Embedding generated (size: %d dimensions)\n", len(embedding))
+
+	// Step 3: Check for semantically similar tags
+	// Distance range [0, 2]: 0=identical, 1=orthogonal, 2=opposite
+	// Threshold 0.30 = 85% semantic similarity (strict)
+	// This catches cross-language synonyms (e.g., "money" ↔ "tiền", "video" ↔ "clip")
+	// But REJECTS unrelated words (e.g., "money" vs "sex")
+	const SIMILARITY_THRESHOLD = 0.30
+	const SUGGESTION_LIMIT = 3 // Return top 3 similar tags as suggestions
+	fmt.Printf("[TAG_SERVICE] Step 3: Searching for similar tags (threshold: %.2f, limit: %d)...\n", SIMILARITY_THRESHOLD, SUGGESTION_LIMIT)
+	similarTags, distances, err := s.tagRepo.FindTopSimilarTags(ctx, embedding, SIMILARITY_THRESHOLD, SUGGESTION_LIMIT)
+	if err != nil {
+		fmt.Printf("[TAG_SERVICE] ✗ Error checking similarity: %v\n", err)
+		return nil, fmt.Errorf("failed to check similarity: %w", err)
 	}
 
+	// Step 4: If similar tag found, return semantic duplicate error with suggestions
+	if len(similarTags) > 0 {
+		fmt.Printf("[TAG_SERVICE] ⚠ Found %d similar tags:\n", len(similarTags))
+		for i, tag := range similarTags {
+			similarity := (1.0 - distances[i]/2.0) * 100
+			fmt.Printf("  [%d] '%s' (distance: %.4f, similarity: %.1f%%)\n", i+1, tag.Name, distances[i], similarity)
+		}
+		return nil, &SemanticDuplicateError{
+			ExistingTag: &similarTags[0],
+			Distance:    distances[0],
+			Suggestions: similarTags,
+		}
+	}
+	fmt.Printf("[TAG_SERVICE] ✓ No similar tags found\n")
+
+	// Step 5: No duplicate found - proceed to create tag with embedding
+	fmt.Printf("[TAG_SERVICE] Step 4: Creating tag...\n")
 	tag := &domain.Tag{
 		Name: req.Name,
 	}
 
-	if err := s.tagRepo.Create(tag); err != nil {
+	// Note: Create() will auto-generate embedding again, but we could optimize
+	// by passing the embedding we already generated
+	if err := s.tagRepo.Create(ctx, tag); err != nil {
+		fmt.Printf("[TAG_SERVICE] ✗ Failed to create tag: %v\n", err)
 		return nil, fmt.Errorf("failed to create tag: %w", err)
 	}
 
+	fmt.Printf("[TAG_SERVICE] ✓ Tag created successfully (ID: %s)\n", tag.ID.String())
 	return s.toTagResponse(tag), nil
 }
 
@@ -114,7 +161,7 @@ func (s *tagService) DeleteTag(id string) error {
 }
 
 // ListTags returns paginated list of tags
-func (s *tagService) ListTags(req dto.TagListRequest) (*dto.TagListResponse, error) {
+func (s *tagService) ListTags(ctx context.Context, req dto.TagListRequest) (*dto.TagListResponse, error) {
 	if req.Page < 1 {
 		req.Page = 1
 	}
@@ -122,9 +169,9 @@ func (s *tagService) ListTags(req dto.TagListRequest) (*dto.TagListResponse, err
 		req.Limit = 20
 	}
 
-	// If query provided, search instead of list
+	// If query provided, search instead of list (Hybrid Search: SQL + Vector)
 	if req.Query != "" {
-		tags, err := s.tagRepo.Search(req.Query, req.Limit)
+		tags, err := s.tagRepo.Search(ctx, req.Query, req.Limit)
 		if err != nil {
 			return nil, fmt.Errorf("failed to search tags: %w", err)
 		}
@@ -168,13 +215,13 @@ func (s *tagService) ListTags(req dto.TagListRequest) (*dto.TagListResponse, err
 	}, nil
 }
 
-// SearchTags searches tags by name
-func (s *tagService) SearchTags(query string, limit int) ([]dto.TagResponse, error) {
+// SearchTags searches tags using hybrid search (SQL LIKE → Vector Search)
+func (s *tagService) SearchTags(ctx context.Context, query string, limit int) ([]dto.TagResponse, error) {
 	if limit < 1 {
 		limit = 20
 	}
 
-	tags, err := s.tagRepo.Search(query, limit)
+	tags, err := s.tagRepo.Search(ctx, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search tags: %w", err)
 	}
@@ -188,7 +235,7 @@ func (s *tagService) SearchTags(query string, limit int) ([]dto.TagResponse, err
 }
 
 // AddTagToVideo adds a tag to a video (creates tag if not exists)
-func (s *tagService) AddTagToVideo(videoID string, req dto.AddVideoTagRequest) (*dto.TagResponse, error) {
+func (s *tagService) AddTagToVideo(ctx context.Context, videoID string, req dto.AddVideoTagRequest) (*dto.TagResponse, error) {
 	videoUUID, err := uuid.Parse(videoID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid video ID: %w", err)
@@ -212,8 +259,8 @@ func (s *tagService) AddTagToVideo(videoID string, req dto.AddVideoTagRequest) (
 			return nil, fmt.Errorf("tag not found: %w", err)
 		}
 	} else if req.TagName != nil && *req.TagName != "" {
-		// Get or create tag by name
-		tag, err = s.tagRepo.GetOrCreateByName(*req.TagName)
+		// Get or create tag by name (with embedding)
+		tag, err = s.tagRepo.GetOrCreateByName(ctx, *req.TagName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get or create tag: %w", err)
 		}
@@ -275,3 +322,4 @@ func (s *tagService) toTagResponse(tag *domain.Tag) *dto.TagResponse {
 		Name: tag.Name,
 	}
 }
+*/

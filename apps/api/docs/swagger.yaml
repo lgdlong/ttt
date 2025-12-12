@@ -1,5 +1,31 @@
 basePath: /api/v1
 definitions:
+  dto.APIResponse:
+    properties:
+      data:
+        description: Response payload (nil for errors)
+      error:
+        allOf:
+        - $ref: '#/definitions/dto.ErrorDetail'
+        description: Error details (nil for success)
+      message:
+        description: Human-readable message
+        type: string
+      metadata:
+        allOf:
+        - $ref: '#/definitions/dto.Metadata'
+        description: Additional context
+      request_id:
+        description: For distributed tracing
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/dto.ResponseStatus'
+        description: success/created/merged/error/conflict
+      timestamp:
+        description: Response timestamp (ISO 8601)
+        type: string
+    type: object
   dto.AddVideoTagRequest:
     properties:
       tag_id:
@@ -16,6 +42,35 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.CanonicalTagResponse:
+    properties:
+      id:
+        description: Canonical tag ID
+        type: string
+      matched_alias:
+        description: Original user input (for UI feedback)
+        type: string
+      name:
+        description: Display name (canonical)
+        type: string
+    type: object
+  dto.CreateSegmentRequest:
+    properties:
+      end_time:
+        description: Milliseconds, must be > StartTime
+        type: integer
+      start_time:
+        description: Milliseconds
+        minimum: 0
+        type: integer
+      text:
+        minLength: 1
+        type: string
+    required:
+    - end_time
+    - start_time
+    - text
     type: object
   dto.CreateTagRequest:
     properties:
@@ -61,6 +116,20 @@ definitions:
     required:
     - youtube_id
     type: object
+  dto.ErrorDetail:
+    properties:
+      code:
+        description: Machine-readable error code (e.g., "TAG_DUPLICATE")
+        type: string
+      details:
+        description: Additional context (e.g., suggestions)
+      field:
+        description: Field name for validation errors
+        type: string
+      message:
+        description: Human-readable error message
+        type: string
+    type: object
   dto.ErrorResponse:
     properties:
       code:
@@ -84,6 +153,61 @@ definitions:
     required:
     - password
     - username
+    type: object
+  dto.MergeTagsRequest:
+    properties:
+      source_id:
+        description: Tag to be merged (will become alias)
+        type: string
+      target_id:
+        description: Target canonical tag (will remain)
+        type: string
+    required:
+    - source_id
+    - target_id
+    type: object
+  dto.Metadata:
+    properties:
+      auto_merged:
+        description: true if auto-merged with existing
+        type: boolean
+      canonical_name:
+        description: Canonical/normalized name
+        type: string
+      is_new_resource:
+        description: Tag operation metadata
+        type: boolean
+      layer_hit:
+        description: Which resolution layer matched (1/1.5/2/3/4)
+        type: integer
+      matched_via:
+        description: 'How match was found: "exact"|"translation"|"vector"|"new"'
+        type: string
+      merged_into:
+        description: ID of resource merged into
+        type: string
+      original_input:
+        description: User's original input
+        type: string
+      pagination:
+        allOf:
+        - $ref: '#/definitions/dto.PaginationMetadata'
+        description: Pagination metadata (for list endpoints)
+      processing_time_ms:
+        description: Performance metadata
+        type: integer
+      similarity_score:
+        description: Vector similarity score (0.0-1.0)
+        type: number
+      translated_from:
+        description: Original language input
+        type: string
+      translated_to:
+        description: Translated English term
+        type: string
+      translation_used:
+        description: true if Translation Layer was used
+        type: boolean
     type: object
   dto.ModVideoListResponse:
     properties:
@@ -138,6 +262,40 @@ definitions:
       total_pages:
         type: integer
     type: object
+  dto.ResponseStatus:
+    enum:
+    - success
+    - created
+    - merged
+    - error
+    - not_found
+    - conflict
+    - invalid
+    type: string
+    x-enum-comments:
+      StatusConflict: Business logic conflict (HTTP 409)
+      StatusCreated: New resource created (HTTP 201)
+      StatusError: Generic error
+      StatusInvalid: Invalid input (HTTP 400)
+      StatusMerged: Resource auto-merged with existing (tag deduplication)
+      StatusNotFound: Resource not found (HTTP 404)
+      StatusSuccess: Operation completed successfully
+    x-enum-descriptions:
+    - Operation completed successfully
+    - New resource created (HTTP 201)
+    - Resource auto-merged with existing (tag deduplication)
+    - Generic error
+    - Resource not found (HTTP 404)
+    - Business logic conflict (HTTP 409)
+    - Invalid input (HTTP 400)
+    x-enum-varnames:
+    - StatusSuccess
+    - StatusCreated
+    - StatusMerged
+    - StatusError
+    - StatusNotFound
+    - StatusConflict
+    - StatusInvalid
   dto.SegmentResponse:
     properties:
       end_time:
@@ -185,6 +343,13 @@ definitions:
     - email
     - password
     - username
+    type: object
+  dto.SubmitReviewRequest:
+    properties:
+      notes:
+        description: 'Optional: Add any review metadata if needed in future'
+        maxLength: 500
+        type: string
     type: object
   dto.TagListResponse:
     properties:
@@ -272,15 +437,6 @@ definitions:
     required:
     - text_content
     type: object
-  dto.UpdateTagRequest:
-    properties:
-      name:
-        maxLength: 100
-        minLength: 1
-        type: string
-    required:
-    - name
-    type: object
   dto.UpdateUserRequest:
     properties:
       email:
@@ -345,6 +501,9 @@ definitions:
         type: string
       published_at:
         type: string
+      review_count:
+        description: Number of reviews - show "Đã duyệt" badge if > 0
+        type: integer
       thumbnail_url:
         type: string
       title:
@@ -387,6 +546,9 @@ definitions:
         type: string
       published_at:
         type: string
+      review_count:
+        description: Number of reviews - show "Đã duyệt" badge if > 0
+        type: integer
       tags:
         items:
           $ref: '#/definitions/dto.TagResponse'
@@ -408,6 +570,29 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/dto.PaginationMetadata'
+    type: object
+  dto.VideoTranscriptReviewResponse:
+    properties:
+      id:
+        type: integer
+      message:
+        description: Human-readable status message
+        type: string
+      points_awarded:
+        description: Points given to reviewer
+        type: integer
+      reviewed_at:
+        type: string
+      total_reviews:
+        description: Total reviews for this video
+        type: integer
+      user_id:
+        type: string
+      video_id:
+        type: string
+      video_status:
+        description: Current video status (e.g., "PUBLISHED")
+        type: string
     type: object
   handler.HealthResponse:
     properties:
@@ -609,154 +794,6 @@ paths:
       summary: Health check
       tags:
       - System
-  /mod/tags:
-    get:
-      consumes:
-      - application/json
-      description: Get paginated list of tags with optional search
-      parameters:
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 20
-        description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Search query
-        in: query
-        name: query
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.TagListResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: List tags
-      tags:
-      - Tags
-    post:
-      consumes:
-      - application/json
-      description: Create a new tag (mod/admin only)
-      parameters:
-      - description: Tag data
-        in: body
-        name: tag
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateTagRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/dto.TagResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "409":
-          description: Tag already exists
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Create a new tag
-      tags:
-      - Tags
-  /mod/tags/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a tag (mod/admin only)
-      parameters:
-      - description: Tag ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Delete tag
-      tags:
-      - Tags
-    get:
-      consumes:
-      - application/json
-      description: Get tag details by tag ID
-      parameters:
-      - description: Tag ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.TagResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Get tag by ID
-      tags:
-      - Tags
-    put:
-      consumes:
-      - application/json
-      description: Update tag information (mod/admin only)
-      parameters:
-      - description: Tag ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Updated tag data
-        in: body
-        name: tag
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateTagRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.TagResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "409":
-          description: Tag name already exists
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Update tag
-      tags:
-      - Tags
   /mod/videos:
     get:
       consumes:
@@ -863,57 +900,30 @@ paths:
       summary: Delete video (soft delete)
       tags:
       - Videos
-  /mod/videos/{id}/tags:
-    get:
-      consumes:
-      - application/json
-      description: Get all tags for a video
-      parameters:
-      - description: Video ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/dto.TagResponse'
-            type: array
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Get video tags
-      tags:
-      - Videos
+  /mod/videos/{id}/transcript/segments:
     post:
       consumes:
       - application/json
-      description: Add a tag to a video. Creates tag if tag_name provided and doesn't
-        exist.
+      description: Add a new transcript segment to a video
       parameters:
       - description: Video ID (UUID)
         in: path
         name: id
         required: true
         type: string
-      - description: Tag info (provide tag_id OR tag_name)
+      - description: Segment data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.AddVideoTagRequest'
+          $ref: '#/definitions/dto.CreateSegmentRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
-            $ref: '#/definitions/dto.TagResponse'
+            $ref: '#/definitions/dto.SegmentResponse'
         "400":
           description: Bad Request
           schema:
@@ -922,35 +932,7 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-      summary: Add tag to video
-      tags:
-      - Videos
-  /mod/videos/{id}/tags/{tag_id}:
-    delete:
-      consumes:
-      - application/json
-      description: Remove a tag from a video
-      parameters:
-      - description: Video ID (UUID)
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Tag ID (UUID)
-        in: path
-        name: tag_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: Remove tag from video
+      summary: Create new transcript segment
       tags:
       - Videos
   /mod/videos/preview/{id}:
@@ -1281,6 +1263,256 @@ paths:
       summary: Update user
       tags:
       - Users
+  /v2/mod/tags:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of canonical tags with optional search
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TagListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: List canonical tags
+      tags:
+      - Tags
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Create a canonical tag using 4-layer resolution. Automatically merges similar tags.
+        Returns existing tag if semantically similar (>85% similarity).
+      parameters:
+      - description: Tag data
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Existing similar tag returned (auto-merged)
+          schema:
+            $ref: '#/definitions/dto.CanonicalTagResponse'
+        "201":
+          description: Tag created
+          schema:
+            $ref: '#/definitions/dto.CanonicalTagResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create a new canonical tag (v2 - with auto-resolution)
+      tags:
+      - Tags
+  /v2/mod/tags/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get canonical tag details by tag ID
+      parameters:
+      - description: Canonical Tag ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TagResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get canonical tag by ID
+      tags:
+      - Tags
+  /v2/mod/tags/merge:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Manually merge source tag into target tag. Source becomes an alias of target.
+        All aliases and video relationships are transferred to target.
+        Source canonical tag is deleted after merge.
+      parameters:
+      - description: Source and target tag IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MergeTagsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Merge successful
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Invalid request or tags are the same
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "404":
+          description: Source or target tag not found
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Manually merge tags
+      tags:
+      - Tags
+  /v2/mod/tags/search:
+    get:
+      consumes:
+      - application/json
+      description: 'Search canonical tags by name (hybrid: SQL LIKE + Vector similarity)'
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - default: 10
+        description: Max results
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.TagResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Search canonical tags
+      tags:
+      - Tags
+  /v2/mod/videos/{id}/tags:
+    get:
+      consumes:
+      - application/json
+      description: Get all canonical tags for a video
+      parameters:
+      - description: Video ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.TagResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get video canonical tags
+      tags:
+      - Videos
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Add a tag to a video using 4-layer resolution. Automatically merges similar tags.
+        No 409 conflict errors - system handles duplicates transparently.
+      parameters:
+      - description: Video ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Tag info (provide tag_id OR tag_name)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddVideoTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tag added successfully (may be auto-merged)
+          schema:
+            $ref: '#/definitions/dto.CanonicalTagResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Add canonical tag to video (with auto-resolution)
+      tags:
+      - Videos
+  /v2/mod/videos/{id}/tags/{tag_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a canonical tag from a video
+      parameters:
+      - description: Video ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Canonical Tag ID (UUID)
+        in: path
+        name: tag_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Remove canonical tag from video
+      tags:
+      - Videos
   /videos:
     get:
       consumes:
@@ -1355,6 +1587,118 @@ paths:
       summary: Get video details
       tags:
       - Videos
+  /videos/{id}/reviews:
+    post:
+      consumes:
+      - application/json
+      description: Moderator submits a review after verifying video transcript. Awards
+        points and updates video status if threshold met.
+      parameters:
+      - description: Video ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Optional review notes
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.SubmitReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.VideoTranscriptReviewResponse'
+        "400":
+          description: Invalid request or user already reviewed
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Video not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit transcript review for a video
+      tags:
+      - Video Reviews
+  /videos/{id}/reviews/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get the number of reviews for a specific video
+      parameters:
+      - description: Video ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns {video_id, review_count}
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get review statistics for a video
+      tags:
+      - Video Reviews
+  /videos/{id}/reviews/status:
+    get:
+      consumes:
+      - application/json
+      description: Check whether the authenticated user has already reviewed a specific
+        video
+      parameters:
+      - description: Video ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns {video_id, has_reviewed}
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check if user has reviewed a video
+      tags:
+      - Video Reviews
   /videos/{id}/transcript:
     get:
       consumes:
