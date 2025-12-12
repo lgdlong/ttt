@@ -42,7 +42,7 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 	var videos []domain.Video
 	var total int64
 
-	query := r.db.Model(&domain.Video{}).Preload("Tags")
+	query := r.db.Model(&domain.Video{}).Preload("CanonicalTags")
 
 	// Apply tag filter if provided
 	if req.TagID != "" {
@@ -50,8 +50,8 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 		if err != nil {
 			return nil, 0, fmt.Errorf("invalid tag_id format: %w", err)
 		}
-		query = query.Joins("JOIN video_tags ON video_tags.video_id = videos.id").
-			Where("video_tags.tag_id = ?", tagUUID)
+		query = query.Joins("JOIN video_canonical_tags ON video_canonical_tags.video_id = videos.id").
+			Where("video_canonical_tags.canonical_tag_id = ?", tagUUID)
 	}
 
 	// Apply has_transcript filter if provided
@@ -112,7 +112,7 @@ func (r *videoRepository) GetReviewCountsForVideos(videoIDs []uuid.UUID) (map[uu
 // GetVideoByID retrieves single video with tags
 func (r *videoRepository) GetVideoByID(id uuid.UUID) (*domain.Video, error) {
 	var video domain.Video
-	if err := r.db.Preload("Tags").First(&video, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("CanonicalTags").First(&video, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &video, nil
@@ -121,7 +121,7 @@ func (r *videoRepository) GetVideoByID(id uuid.UUID) (*domain.Video, error) {
 // GetVideoByYoutubeID retrieves a video by YouTube ID
 func (r *videoRepository) GetVideoByYoutubeID(youtubeID string) (*domain.Video, error) {
 	var video domain.Video
-	if err := r.db.Preload("Tags").Where("youtube_id = ?", youtubeID).First(&video).Error; err != nil {
+	if err := r.db.Preload("CanonicalTags").Where("youtube_id = ?", youtubeID).First(&video).Error; err != nil {
 		return nil, err
 	}
 	return &video, nil
@@ -155,7 +155,7 @@ func (r *videoRepository) SearchVideos(query string, page, limit int) ([]domain.
 	}
 
 	offset := (page - 1) * limit
-	if err := baseQuery.Preload("Tags").
+	if err := baseQuery.Preload("CanonicalTags").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).
@@ -274,7 +274,7 @@ func (r *videoRepository) GetModVideoList(offset, limit int, searchQuery, tagIDs
 	var total int64
 
 	query := r.db.
-		Preload("Tags"). // Load tags for each video
+		Preload("CanonicalTags"). // Load canonical tags for each video
 		Offset(offset).
 		Limit(limit).
 		Order("created_at DESC")
