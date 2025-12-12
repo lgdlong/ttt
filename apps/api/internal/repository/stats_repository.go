@@ -32,9 +32,10 @@ func (r *statsRepository) GetTotalUsers() (int64, error) {
 }
 
 // GetActiveUsers returns number of non-banned users
+// GetActiveUsers returns number of active users
 func (r *statsRepository) GetActiveUsers() (int64, error) {
 	var count int64
-	err := r.db.Model(&domain.User{}).Where("is_banned = ?", false).Count(&count).Error
+	err := r.db.Model(&domain.User{}).Where("is_active = ?", true).Count(&count).Error
 	return count, err
 }
 
