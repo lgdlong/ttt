@@ -1,79 +1,81 @@
 import React, { useState, useCallback } from 'react'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material'
-import type { TagResponse } from '~/types/tag'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Alert,
+} from '@mui/material'
 
 interface TagFormDialogProps {
   open: boolean
   onClose: () => void
-  onSave: (name: string, description?: string) => void
-  tag: TagResponse | null
+  onSave: (name: string) => void
   isSaving: boolean
-  mode: 'create' | 'edit'
 }
 
 export const TagFormDialog: React.FC<TagFormDialogProps> = ({
   open,
   onClose,
   onSave,
-  tag,
   isSaving,
-  mode,
 }) => {
-  const [tagName, setTagName] = useState(tag?.name || '')
-  const [tagDescription, setTagDescription] = useState(tag?.description || '')
+  const [tagName, setTagName] = useState('')
 
-  // Reset form when dialog opens/closes or tag changes
+  // Reset form when dialog opens
   React.useEffect(() => {
     if (open) {
-      setTagName(tag?.name || '')
-      setTagDescription(tag?.description || '')
+      setTagName('')
     }
-  }, [open, tag])
+  }, [open])
 
   const handleSave = useCallback(() => {
     if (!tagName.trim()) return
-    onSave(tagName.trim(), tagDescription.trim() || undefined)
-  }, [tagName, tagDescription, onSave])
+    onSave(tagName.trim())
+  }, [tagName, onSave])
 
   const handleClose = useCallback(() => {
     setTagName('')
-    setTagDescription('')
     onClose()
   }, [onClose])
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && tagName.trim() && !isSaving) {
+        handleSave()
+      }
+    },
+    [tagName, isSaving, handleSave]
+  )
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{mode === 'create' ? 'Thêm Tag mới' : 'Sửa Tag'}</DialogTitle>
+      <DialogTitle>Thêm Tag mới</DialogTitle>
       <DialogContent>
+        <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
+          Hệ thống sẽ tự động kiểm tra và merge với tag tương tự nếu có.
+        </Alert>
         <TextField
           autoFocus
           fullWidth
           label="Tên tag"
           value={tagName}
           onChange={(e) => setTagName(e.target.value)}
+          onKeyDown={handleKeyDown}
           margin="normal"
           required
-        />
-        <TextField
-          fullWidth
-          label="Mô tả (tùy chọn)"
-          value={tagDescription}
-          onChange={(e) => setTagDescription(e.target.value)}
-          margin="normal"
-          multiline
-          rows={2}
+          placeholder="Nhập tên tag..."
+          helperText="Tag sẽ được chuẩn hóa tự động (ví dụ: 'tiền' → 'Money')"
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Hủy</Button>
+        <Button onClick={handleClose} disabled={isSaving}>
+          Hủy
+        </Button>
         <Button variant="contained" onClick={handleSave} disabled={!tagName.trim() || isSaving}>
-          {isSaving
-            ? mode === 'create'
-              ? 'Đang tạo...'
-              : 'Đang lưu...'
-            : mode === 'create'
-              ? 'Tạo'
-              : 'Lưu'}
+          {isSaving ? 'Đang tạo...' : 'Tạo'}
         </Button>
       </DialogActions>
     </Dialog>

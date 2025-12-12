@@ -1,56 +1,106 @@
 import axiosInstance from '~/lib/axios'
-import type { TagResponse } from '~/types/tag'
+import type {
+  TagResponse,
+  TagListResponse,
+  CreateTagRequest,
+  MergeTagsRequest,
+  MergeTagsResponse,
+  UpdateTagApprovalRequest,
+} from '~/types/tag'
 
-interface TagListResponse {
+// V2 API base path
+const API_BASE = '/v2/mod/tags'
+
+// ============================================================
+// Tag List & Search
+// ============================================================
+
+interface FetchTagsParams {
+  page: number
+  pageSize: number
+  query?: string
+}
+
+interface FetchTagsResult {
   tags: TagResponse[]
   total: number
   page: number
-  page_size: number
+  pageSize: number
+  totalPages: number
 }
 
-export const fetchTags = async (params: {
-  page: number
-  pageSize: number
-  q?: string
-}): Promise<TagListResponse> => {
-  const response = await axiosInstance.get('/mod/tags', {
+export const fetchTags = async (params: FetchTagsParams): Promise<FetchTagsResult> => {
+  const response = await axiosInstance.get(API_BASE, {
     params: {
       page: params.page,
-      page_size: params.pageSize,
-      q: params.q || undefined,
+      limit: params.pageSize,
+      query: params.query || undefined,
     },
   })
-  return response.data
+
+  // V2 API returns { status, data, metadata: { pagination } }
+  const { data, metadata } = response.data
+  const pagination = metadata?.pagination || {}
+
+  return {
+    tags: data || [],
+    total: pagination.total || 0,
+    page: pagination.page || 1,
+    pageSize: pagination.limit || 20,
+    totalPages: pagination.total_pages || 1,
+  }
 }
 
-export interface CreateTagRequest {
-  name: string
-  description?: string
+export const searchTags = async (query: string, limit = 10): Promise<TagResponse[]> => {
+  const response = await axiosInstance.get(`${API_BASE}/search`, {
+    params: { q: query, limit },
+  })
+  // V2 API returns { status, data }
+  return response.data.data || []
 }
 
-export interface UpdateTagRequest {
-  name: string
-  description?: string
-}
+// ============================================================
+// Tag CRUD
+// ============================================================
 
 export const createTag = async (data: CreateTagRequest): Promise<TagResponse> => {
-  const response = await axiosInstance.post('/mod/tags', data)
-  return response.data
+  const response = await axiosInstance.post(API_BASE, data)
+  // V2 API returns { status, data } with TagResolveResponse format
+  const tagData = response.data.data
+  return {
+    id: tagData.id,
+    name: tagData.name,
+    is_approved: false, // New tags are not approved by default
+  }
 }
 
-export const updateTag = async ({
+export const getTag = async (id: string): Promise<TagResponse> => {
+  const response = await axiosInstance.get(`${API_BASE}/${id}`)
+  return response.data.data
+}
+
+// ============================================================
+// Tag Merge (Manual)
+// ============================================================
+
+export const mergeTags = async (data: MergeTagsRequest): Promise<MergeTagsResponse> => {
+  const response = await axiosInstance.post(`${API_BASE}/merge`, data)
+  return response.data.data
+}
+
+// ============================================================
+// Tag Approval
+// ============================================================
+
+export const updateTagApproval = async ({
   id,
   data,
 }: {
-  id: number
-  data: UpdateTagRequest
+  id: string
+  data: UpdateTagApprovalRequest
 }): Promise<TagResponse> => {
-  const response = await axiosInstance.put(`/mod/tags/${id}`, data)
-  return response.data
+  const response = await axiosInstance.patch(`${API_BASE}/${id}/approve`, data)
+  return response.data.data
 }
 
-export const deleteTag = async (id: number): Promise<void> => {
-  await axiosInstance.delete(`/mod/tags/${id}`)
-}
-
-export type { TagListResponse }
+export type { FetchTagsResult, TagListResponse }

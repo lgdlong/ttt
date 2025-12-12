@@ -31,9 +31,9 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
         <Typography>
           Bạn có chắc muốn xóa tag <strong>{tag?.name}</strong>?
         </Typography>
-        {tag && tag.video_count && tag.video_count > 0 && (
-          <Typography color="warning.main" sx={{ mt: 1 }}>
-            Tag này đang được gắn với {tag.video_count} video.
+        {!tag?.is_approved && (
+          <Typography color="info.main" sx={{ mt: 1 }}>
+            Tag này chưa được duyệt.
           </Typography>
         )}
       </DialogContent>

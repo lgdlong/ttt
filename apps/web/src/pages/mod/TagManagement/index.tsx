@@ -1,11 +1,20 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import { Box, Typography, Button, Paper, TextField, InputAdornment } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  TextField,
+  InputAdornment,
+  Snackbar,
+  Alert,
+} from '@mui/material'
 import { Add as AddIcon, Search as SearchIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import type { TagResponse } from '~/types/tag'
 import { TagTable } from './TagTable'
 import { TagFormDialog } from './TagFormDialog'
-import { DeleteConfirmDialog } from './DeleteConfirmDialog'
+import { MergeTagDialog } from './MergeTagDialog'
 import { fetchTags } from './api'
 import { useTagMutations } from './useTagMutations'
 
@@ -18,9 +27,16 @@ const TagManagement: React.FC = () => {
 
   // Dialog state
   const [openCreateDialog, setOpenCreateDialog] = useState(false)
-  const [openEditDialog, setOpenEditDialog] = useState(false)
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [openMergeDialog, setOpenMergeDialog] = useState(false)
   const [selectedTag, setSelectedTag] = useState<TagResponse | null>(null)
+  const [approvingTagId, setApprovingTagId] = useState<string | undefined>()
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: 'success' | 'error' | 'info'
+  }>({ open: false, message: '', severity: 'success' })
 
   // Debounce search
   useEffect(() => {
@@ -34,14 +50,22 @@ const TagManagement: React.FC = () => {
   // Query
   const { data, isLoading, error } = useQuery({
     queryKey: ['mod-tags', page, pageSize, debouncedSearch],
-    queryFn: () => fetchTags({ page: page + 1, pageSize, q: debouncedSearch }),
+    queryFn: () => fetchTags({ page: page + 1, pageSize, query: debouncedSearch }),
   })
 
   // Mutations
-  const { createMutation, updateMutation, deleteMutation } = useTagMutations({
-    onCreateSuccess: () => handleCloseCreateDialog(),
-    onUpdateSuccess: () => handleCloseEditDialog(),
-    onDeleteSuccess: () => handleCloseDeleteDialog(),
+  const { createMutation, mergeMutation, approvalMutation } = useTagMutations({
+    onCreateSuccess: () => {
+      handleCloseCreateDialog()
+      setSnackbar({ open: true, message: 'Tag đã được tạo thành công!', severity: 'success' })
+    },
+    onMergeSuccess: () => {
+      handleCloseMergeDialog()
+      setSnackbar({ open: true, message: 'Merge tag thành công!', severity: 'success' })
+    },
+    onApprovalSuccess: () => {
+      setApprovingTagId(undefined)
+    },
   })
 
   // Handlers
@@ -64,48 +88,44 @@ const TagManagement: React.FC = () => {
     setSelectedTag(null)
   }, [])
 
-  const handleOpenEditDialog = useCallback((tag: TagResponse) => {
+  const handleOpenMergeDialog = useCallback((tag: TagResponse) => {
     setSelectedTag(tag)
-    setOpenEditDialog(true)
+    setOpenMergeDialog(true)
   }, [])
 
-  const handleCloseEditDialog = useCallback(() => {
-    setOpenEditDialog(false)
-    setSelectedTag(null)
-  }, [])
-
-  const handleOpenDeleteDialog = useCallback((tag: TagResponse) => {
-    setSelectedTag(tag)
-    setOpenDeleteDialog(true)
-  }, [])
-
-  const handleCloseDeleteDialog = useCallback(() => {
-    setOpenDeleteDialog(false)
+  const handleCloseMergeDialog = useCallback(() => {
+    setOpenMergeDialog(false)
     setSelectedTag(null)
   }, [])
 
   const handleCreate = useCallback(
-    (name: string, description?: string) => {
-      createMutation.mutate({ name, description })
+    (name: string) => {
+      createMutation.mutate({ name })
     },
     [createMutation]
   )
 
-  const handleUpdate = useCallback(
-    (name: string, description?: string) => {
-      if (!selectedTag) return
-      updateMutation.mutate({
-        id: selectedTag.id,
-        data: { name, description },
-      })
+  const handleMerge = useCallback(
+    (sourceId: string, targetId: string) => {
+      mergeMutation.mutate({ source_id: sourceId, target_id: targetId })
     },
-    [selectedTag, updateMutation]
+    [mergeMutation]
   )
 
-  const handleDelete = useCallback(() => {
-    if (!selectedTag) return
-    deleteMutation.mutate(selectedTag.id)
-  }, [selectedTag, deleteMutation])
+  const handleApprovalChange = useCallback(
+    (tag: TagResponse, isApproved: boolean) => {
+      setApprovingTagId(tag.id)
+      approvalMutation.mutate({
+        id: tag.id,
+        data: { is_approved: isApproved },
+      })
+    },
+    [approvalMutation]
+  )
+
+  const handleCloseSnackbar = useCallback(() => {
+    setSnackbar((prev) => ({ ...prev, open: false }))
+  }, [])
 
   if (error) {
     return (
@@ -120,15 +140,17 @@ const TagManagement: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h5" fontWeight={600} gutterBottom>
-            Quản lý Tags
+            Quản lý Tags (V2)
           </Typography>
-          <Typography color="text.secondary">Tạo và quản lý tags cho video</Typography>
+          <Typography color="text.secondary">
+            Tạo, duyệt và merge canonical tags cho video
+          </Typography>
         </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCreateDialog}
-          sx={{ borderRadius: 0 }}
+          sx={{ borderRadius: 1 }}
         >
           Thêm Tag
         </Button>
@@ -164,8 +186,9 @@ const TagManagement: React.FC = () => {
         debouncedSearch={debouncedSearch}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        onEdit={handleOpenEditDialog}
-        onDelete={handleOpenDeleteDialog}
+        onMerge={handleOpenMergeDialog}
+        onApprovalChange={handleApprovalChange}
+        isApprovingId={approvingTagId}
       />
 
       {/* Create Dialog */}
@@ -173,29 +196,29 @@ const TagManagement: React.FC = () => {
         open={openCreateDialog}
         onClose={handleCloseCreateDialog}
         onSave={handleCreate}
-        tag={null}
         isSaving={createMutation.isPending}
-        mode="create"
       />
 
-      {/* Edit Dialog */}
-      <TagFormDialog
-        open={openEditDialog}
-        onClose={handleCloseEditDialog}
-        onSave={handleUpdate}
-        tag={selectedTag}
-        isSaving={updateMutation.isPending}
-        mode="edit"
+      {/* Merge Dialog */}
+      <MergeTagDialog
+        open={openMergeDialog}
+        onClose={handleCloseMergeDialog}
+        onMerge={handleMerge}
+        sourceTag={selectedTag}
+        isMerging={mergeMutation.isPending}
       />
 
-      {/* Delete Dialog */}
-      <DeleteConfirmDialog
-        open={openDeleteDialog}
-        onClose={handleCloseDeleteDialog}
-        onConfirm={handleDelete}
-        tag={selectedTag}
-        isDeleting={deleteMutation.isPending}
-      />
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

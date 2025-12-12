@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createTag, updateTag, deleteTag } from './api'
+import { createTag, mergeTags, updateTagApproval } from './api'
 
 interface UseTagMutationsCallbacks {
   onCreateSuccess?: () => void
-  onUpdateSuccess?: () => void
-  onDeleteSuccess?: () => void
+  onMergeSuccess?: () => void
+  onApprovalSuccess?: () => void
 }
 
 export const useTagMutations = (callbacks?: UseTagMutationsCallbacks) => {
@@ -18,25 +18,25 @@ export const useTagMutations = (callbacks?: UseTagMutationsCallbacks) => {
     },
   })
 
-  const updateMutation = useMutation({
-    mutationFn: updateTag,
+  const mergeMutation = useMutation({
+    mutationFn: mergeTags,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mod-tags'] })
-      callbacks?.onUpdateSuccess?.()
+      callbacks?.onMergeSuccess?.()
     },
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteTag,
+  const approvalMutation = useMutation({
+    mutationFn: updateTagApproval,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mod-tags'] })
-      callbacks?.onDeleteSuccess?.()
+      callbacks?.onApprovalSuccess?.()
     },
   })
 
   return {
     createMutation,
-    updateMutation,
-    deleteMutation,
+    mergeMutation,
+    approvalMutation,
   }
 }

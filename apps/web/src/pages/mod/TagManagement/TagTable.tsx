@@ -13,8 +13,9 @@ import {
   Typography,
   Chip,
   Tooltip,
+  Switch,
 } from '@mui/material'
-import { Edit as EditIcon, Delete as DeleteIcon, LocalOffer as TagIcon } from '@mui/icons-material'
+import { MergeType as MergeIcon, LocalOffer as TagIcon } from '@mui/icons-material'
 import type { TagResponse } from '~/types/tag'
 
 interface TagTableProps {
@@ -26,8 +27,9 @@ interface TagTableProps {
   debouncedSearch: string
   onPageChange: (_: unknown, newPage: number) => void
   onRowsPerPageChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-  onEdit: (tag: TagResponse) => void
-  onDelete: (tag: TagResponse) => void
+  onMerge: (tag: TagResponse) => void
+  onApprovalChange: (tag: TagResponse, isApproved: boolean) => void
+  isApprovingId?: string // Currently approving tag ID
 }
 
 export const TagTable: React.FC<TagTableProps> = ({
@@ -39,8 +41,9 @@ export const TagTable: React.FC<TagTableProps> = ({
   debouncedSearch,
   onPageChange,
   onRowsPerPageChange,
-  onEdit,
-  onDelete,
+  onMerge,
+  onApprovalChange,
+  isApprovingId,
 }) => {
   return (
     <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -48,52 +51,60 @@ export const TagTable: React.FC<TagTableProps> = ({
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
+              <TableCell sx={{ width: 100 }}>ID</TableCell>
               <TableCell>Tên tag</TableCell>
-              <TableCell>Mô tả</TableCell>
-              <TableCell>Số video</TableCell>
-              <TableCell align="right">Thao tác</TableCell>
+              <TableCell align="center" sx={{ width: 120 }}>
+                Duyệt
+              </TableCell>
+              <TableCell align="right" sx={{ width: 100 }}>
+                Thao tác
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                   <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : tags.length > 0 ? (
               tags.map((tag) => (
                 <TableRow key={tag.id} hover>
-                  <TableCell>{tag.id}</TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontFamily: 'monospace' }}
+                    >
+                      {tag.id.slice(0, 8)}...
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Chip
                       icon={<TagIcon sx={{ fontSize: 16 }} />}
                       label={tag.name}
                       size="small"
-                      sx={{ borderRadius: 0 }}
+                      color={tag.is_approved ? 'success' : 'default'}
+                      variant={tag.is_approved ? 'filled' : 'outlined'}
+                      sx={{ borderRadius: 1 }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      noWrap
-                      sx={{ maxWidth: 300 }}
-                    >
-                      {tag.description || '—'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{tag.video_count || 0}</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Sửa">
-                      <IconButton size="small" onClick={() => onEdit(tag)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
+                  <TableCell align="center">
+                    <Tooltip title={tag.is_approved ? 'Đã duyệt' : 'Chưa duyệt'}>
+                      <Switch
+                        size="small"
+                        checked={tag.is_approved}
+                        disabled={isApprovingId === tag.id}
+                        onChange={(e) => onApprovalChange(tag, e.target.checked)}
+                        color="success"
+                      />
                     </Tooltip>
-                    <Tooltip title="Xóa">
-                      <IconButton size="small" color="error" onClick={() => onDelete(tag)}>
-                        <DeleteIcon fontSize="small" />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Merge vào tag khác">
+                      <IconButton size="small" onClick={() => onMerge(tag)} color="primary">
+                        <MergeIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -101,7 +112,7 @@ export const TagTable: React.FC<TagTableProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     {debouncedSearch ? 'Không tìm thấy tag phù hợp' : 'Chưa có tag nào'}
                   </Typography>
