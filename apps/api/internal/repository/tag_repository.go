@@ -37,6 +37,9 @@ type TagRepository interface {
 	// GetCanonicalByID retrieves canonical tag by ID
 	GetCanonicalByID(ctx context.Context, id uuid.UUID) (*domain.CanonicalTag, error)
 
+	// UpdateCanonicalTag updates a canonical tag
+	UpdateCanonicalTag(ctx context.Context, canonical *domain.CanonicalTag) error
+
 	// ListCanonicalTags returns paginated list of canonical tags
 	ListCanonicalTags(ctx context.Context, page, limit int) ([]domain.CanonicalTag, int64, error)
 
@@ -550,6 +553,11 @@ func (r *tagRepository) GetCanonicalByID(ctx context.Context, id uuid.UUID) (*do
 	}
 
 	return &canonical, nil
+}
+
+// UpdateCanonicalTag updates a canonical tag
+func (r *tagRepository) UpdateCanonicalTag(ctx context.Context, canonical *domain.CanonicalTag) error {
+	return r.db.WithContext(ctx).Save(canonical).Error
 }
 
 // ListCanonicalTags returns paginated list of canonical tags

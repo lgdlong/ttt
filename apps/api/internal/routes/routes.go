@@ -141,11 +141,12 @@ func RegisterRoutes(
 			// Canonical Tag management (v2)
 			modTags := mod.Group("/tags")
 			{
-				modTags.GET("", tagHandler.ListCanonicalTags)          // List all canonical tags
-				modTags.POST("", tagHandler.CreateCanonicalTag)        // Create with auto-resolution
-				modTags.POST("/merge", tagHandler.MergeTags)           // Manually merge source into target
-				modTags.GET("/search", tagHandler.SearchCanonicalTags) // Search canonical tags
-				modTags.GET("/:id", tagHandler.GetCanonicalTag)        // Get by ID
+				modTags.GET("", tagHandler.ListCanonicalTags)               // List all canonical tags
+				modTags.POST("", tagHandler.CreateCanonicalTag)             // Create with auto-resolution
+				modTags.POST("/merge", tagHandler.MergeTags)                // Manually merge source into target
+				modTags.GET("/search", tagHandler.SearchCanonicalTags)      // Search canonical tags
+				modTags.GET("/:id", tagHandler.GetCanonicalTag)             // Get by ID
+				modTags.PATCH("/:id/approve", tagHandler.UpdateTagApproval) // Update approval status
 			}
 
 			// Video-Tag management (v2 - uses canonical tags)

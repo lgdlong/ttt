@@ -742,3 +742,56 @@ func (h *TagHandler) MergeTags(c *gin.Context) {
 		result.MergedAliasCount, processingTime)
 	c.JSON(http.StatusOK, apiResponse)
 }
+
+// ============================================================
+// Tag Approval Operations
+// ============================================================
+
+// UpdateTagApproval godoc
+// @Summary Update tag approval status
+// @Description Update the approval status of a canonical tag
+// @Tags Tags
+// @Accept json
+// @Produce json
+// @Param id path string true "Canonical Tag ID (UUID)"
+// @Param request body dto.UpdateTagApprovalRequest true "Approval status"
+// @Success 200 {object} dto.APIResponse "Update successful"
+// @Failure 400 {object} dto.APIResponse "Invalid request"
+// @Failure 404 {object} dto.APIResponse "Tag not found"
+// @Failure 500 {object} dto.APIResponse "Internal error"
+// @Router /v2/mod/tags/{id}/approve [patch]
+func (h *TagHandler) UpdateTagApproval(c *gin.Context) {
+	id := c.Param("id")
+
+	var req dto.UpdateTagApprovalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apiResponse := dto.NewValidationErrorResponse("request", err.Error())
+		c.JSON(http.StatusBadRequest, apiResponse)
+		return
+	}
+
+	fmt.Printf("[UPDATE_TAG_APPROVAL] Tag ID: %s, IsApproved: %v\n", id, req.IsApproved)
+
+	tag, err := h.serviceV2.UpdateTagApproval(c.Request.Context(), id, req.IsApproved)
+	if err != nil {
+		errMsg := err.Error()
+		if errMsg == "tag not found" || errMsg == "invalid tag ID" {
+			apiResponse := dto.NewNotFoundResponse("tag", id)
+			c.JSON(http.StatusNotFound, apiResponse)
+			return
+		}
+		apiResponse := dto.NewInternalErrorResponse("Failed to update tag approval: " + errMsg)
+		c.JSON(http.StatusInternalServerError, apiResponse)
+		return
+	}
+
+	apiResponse := dto.NewSuccessResponse(
+		tag,
+		fmt.Sprintf("Tag '%s' approval status updated to %v", tag.Name, req.IsApproved),
+		nil,
+	)
+
+	fmt.Printf("[UPDATE_TAG_APPROVAL] ✓ Success: Tag '%s' is now %s\n",
+		tag.Name, map[bool]string{true: "approved", false: "unapproved"}[req.IsApproved])
+	c.JSON(http.StatusOK, apiResponse)
+}

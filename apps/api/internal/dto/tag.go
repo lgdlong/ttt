@@ -16,8 +16,9 @@ type UpdateTagRequest struct {
 
 // TagResponse - Tag data for API responses
 type TagResponse struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	IsApproved bool   `json:"is_approved"`
 }
 
 // CanonicalTagResponse - Canonical tag response with alias metadata
@@ -75,6 +76,13 @@ type MergeTagsResponse struct {
 	TargetTag        TagResponse `json:"target_tag"`         // The canonical tag that remains
 	MergedAliasCount int         `json:"merged_alias_count"` // Number of aliases moved
 	SourceTagDeleted bool        `json:"source_tag_deleted"` // Whether source canonical was deleted
+}
+
+// ============ Tag Approve DTOs ============
+
+// UpdateTagApprovalRequest - Request to update tag approval status
+type UpdateTagApprovalRequest struct {
+	IsApproved bool `json:"is_approved"`
 }
 
 // ============ Video Create/Delete DTOs ============

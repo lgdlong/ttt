@@ -16,6 +16,9 @@ type CanonicalTag struct {
 	Slug        string    `gorm:"type:varchar(100);uniqueIndex;not null"`
 	DisplayName string    `gorm:"type:varchar(100);not null"`
 
+	// Approval status - tags need to be approved by moderator before being visible
+	IsApproved bool `gorm:"default:false"`
+
 	// Has Many Aliases (one-to-many relationship)
 	Aliases []TagAlias `gorm:"foreignKey:CanonicalTagID"`
 

@@ -48,6 +48,13 @@ type TagServiceV2 interface {
 	// Source tag becomes an alias pointing to target canonical tag
 	// Returns merged tag info and error
 	MergeTags(ctx context.Context, req dto.MergeTagsRequest) (*dto.MergeTagsResponse, error)
+
+	// ============================================================
+	// Tag Approval Operations
+	// ============================================================
+
+	// UpdateTagApproval updates the approval status of a canonical tag
+	UpdateTagApproval(ctx context.Context, tagID string, isApproved bool) (*dto.TagResponse, error)
 }
 
 type tagServiceV2 struct {
@@ -426,8 +433,9 @@ func (s *tagServiceV2) GetVideoCanonicalTags(ctx context.Context, videoID string
 // toCanonicalTagResponse converts domain.CanonicalTag to dto.TagResponse
 func (s *tagServiceV2) toCanonicalTagResponse(canonical *domain.CanonicalTag) *dto.TagResponse {
 	return &dto.TagResponse{
-		ID:   canonical.ID.String(),
-		Name: canonical.DisplayName,
+		ID:         canonical.ID.String(),
+		Name:       canonical.DisplayName,
+		IsApproved: canonical.IsApproved,
 	}
 }
 
@@ -488,10 +496,37 @@ func (s *tagServiceV2) MergeTags(ctx context.Context, req dto.MergeTagsRequest) 
 	// Build response
 	return &dto.MergeTagsResponse{
 		TargetTag: dto.TagResponse{
-			ID:   targetTag.ID.String(),
-			Name: targetTag.DisplayName,
+			ID:         targetTag.ID.String(),
+			Name:       targetTag.DisplayName,
+			IsApproved: targetTag.IsApproved,
 		},
 		MergedAliasCount: mergedAliasCount,
 		SourceTagDeleted: true,
+	}, nil
+}
+
+// UpdateTagApproval updates the approval status of a canonical tag
+func (s *tagServiceV2) UpdateTagApproval(ctx context.Context, tagID string, isApproved bool) (*dto.TagResponse, error) {
+	tagUUID, err := uuid.Parse(tagID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid tag ID: %w", err)
+	}
+
+	// Get the tag first to ensure it exists
+	tag, err := s.tagRepo.GetCanonicalByID(ctx, tagUUID)
+	if err != nil {
+		return nil, fmt.Errorf("tag not found: %w", err)
+	}
+
+	// Update approval status
+	tag.IsApproved = isApproved
+	if err := s.tagRepo.UpdateCanonicalTag(ctx, tag); err != nil {
+		return nil, fmt.Errorf("failed to update tag approval: %w", err)
+	}
+
+	return &dto.TagResponse{
+		ID:         tag.ID.String(),
+		Name:       tag.DisplayName,
+		IsApproved: tag.IsApproved,
 	}, nil
 }
