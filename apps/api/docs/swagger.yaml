@@ -364,6 +364,8 @@ definitions:
     properties:
       id:
         type: string
+      is_approved:
+        type: boolean
       name:
         type: string
     type: object
@@ -436,6 +438,11 @@ definitions:
         type: string
     required:
     - text_content
+    type: object
+  dto.UpdateTagApprovalRequest:
+    properties:
+      is_approved:
+        type: boolean
     type: object
   dto.UpdateUserRequest:
     properties:
@@ -1351,6 +1358,45 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Get canonical tag by ID
+      tags:
+      - Tags
+  /v2/mod/tags/{id}/approve:
+    patch:
+      consumes:
+      - application/json
+      description: Update the approval status of a canonical tag
+      parameters:
+      - description: Canonical Tag ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Approval status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateTagApprovalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Update successful
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "404":
+          description: Tag not found
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Update tag approval status
       tags:
       - Tags
   /v2/mod/tags/merge:

@@ -1226,6 +1226,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/v2/mod/tags/{id}/approve": {
+            "patch": {
+                "description": "Update the approval status of a canonical tag",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Update tag approval status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Canonical Tag ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Approval status",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateTagApprovalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Update successful",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Tag not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v2/mod/videos/{id}/tags": {
             "get": {
                 "description": "Get all canonical tags for a video",
@@ -2203,6 +2262,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_approved": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -2312,6 +2374,14 @@ const docTemplate = `{
                 },
                 "text_content": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.UpdateTagApprovalRequest": {
+            "type": "object",
+            "properties": {
+                "is_approved": {
+                    "type": "boolean"
                 }
             }
         },
