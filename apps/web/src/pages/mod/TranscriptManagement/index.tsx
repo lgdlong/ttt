@@ -3,26 +3,11 @@ import { Box, Typography, Paper, TablePagination, TextField, InputAdornment } fr
 import { Search as SearchIcon } from '@mui/icons-material'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import axiosInstance from '~/lib/axios'
-import type { ModVideoListResponse } from '~/types/video'
 import { VideoListTable } from './VideoListTable'
 import { TranscriptViewDialog } from './TranscriptViewDialog'
 import { useTranscriptDialog } from './useTranscriptDialog'
 
-const fetchVideos = async (params: {
-  page: number
-  pageSize: number
-  q?: string
-}): Promise<ModVideoListResponse> => {
-  const response = await axiosInstance.get('/mod/videos', {
-    params: {
-      page: params.page,
-      page_size: params.pageSize,
-      q: params.q || undefined,
-    },
-  })
-  return response.data
-}
+import { fetchModVideos } from '~/api/modApi'
 
 const TranscriptManagement: React.FC = () => {
   const navigate = useNavigate()
@@ -56,7 +41,7 @@ const TranscriptManagement: React.FC = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['mod-videos-transcript', page, pageSize, debouncedSearch],
-    queryFn: () => fetchVideos({ page: page + 1, pageSize, q: debouncedSearch }),
+    queryFn: () => fetchModVideos({ page: page + 1, page_size: pageSize, q: debouncedSearch }),
   })
 
   if (error) {

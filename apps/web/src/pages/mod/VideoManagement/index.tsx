@@ -8,7 +8,7 @@ import { VideoTable } from './VideoTable'
 import { AddVideoDialog } from './AddVideoDialog'
 import { TagManagementDialog } from './TagManagementDialog'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
-import { fetchVideos, fetchAllTags } from './api'
+import { fetchModVideos, fetchAllTags } from '~/api/modApi'
 import { useVideoMutations } from './useVideoMutations'
 
 const VideoManagement: React.FC = () => {
@@ -46,7 +46,7 @@ const VideoManagement: React.FC = () => {
       if (scriptFilter === 'with') hasTranscriptParam = 'true'
       else if (scriptFilter === 'without') hasTranscriptParam = 'false'
 
-      return fetchVideos({
+      return fetchModVideos({
         page: page + 1,
         page_size: pageSize,
         q: debouncedSearch,
@@ -67,7 +67,8 @@ const VideoManagement: React.FC = () => {
     onAddTagSuccess: (updatedVideo) => setVideoTags(updatedVideo.tags || []),
     onRemoveTagSuccess: () => {
       if (selectedVideo && removeTagMutation.variables?.tagId) {
-        setVideoTags((prev) => prev.filter((t) => t.id !== removeTagMutation.variables?.tagId))
+        const removedId = String(removeTagMutation.variables.tagId)
+        setVideoTags((prev) => prev.filter((t) => t.id !== removedId))
       }
     },
   })
@@ -128,15 +129,13 @@ const VideoManagement: React.FC = () => {
 
   const handleAddTagToVideo = useCallback(() => {
     if (!selectedVideo || !tagToAdd) return
-    addTagMutation.mutate({
-      videoId: selectedVideo.id,
-      tagIds: [tagToAdd.id],
-    })
+    // TODO: Implement add tag via v2 API
+    setVideoTags((prev) => [...prev, tagToAdd])
     setTagToAdd(null)
-  }, [selectedVideo, tagToAdd, addTagMutation])
+  }, [selectedVideo, tagToAdd])
 
   const handleRemoveTagFromVideo = useCallback(
-    (tagId: number) => {
+    (tagId: string) => {
       if (!selectedVideo) return
       removeTagMutation.mutate({
         videoId: selectedVideo.id,

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Video } from '~types/video'
-import { createVideo, deleteVideo, addTagsToVideo, removeTagFromVideo } from './api'
+import { createVideo, deleteVideo, addTagsToVideo, removeTagFromVideo } from '~/api/modApi'
 
 interface UseVideoMutationsCallbacks {
   onCreateSuccess?: () => void
@@ -39,7 +39,7 @@ export const useVideoMutations = (callbacks?: UseVideoMutationsCallbacks) => {
   })
 
   const removeTagMutation = useMutation({
-    mutationFn: ({ videoId, tagId }: { videoId: number; tagId: number }) =>
+    mutationFn: ({ videoId, tagId }: { videoId: number; tagId: string }) =>
       removeTagFromVideo(videoId, tagId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mod-videos'] })
