@@ -3,7 +3,6 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/repository"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -34,37 +33,19 @@ type GoogleUserInfo struct {
 	Picture       string `json:"picture"`
 }
 
-type AuthService interface {
-	Login(req dto.LoginRequest) (*dto.AuthResponse, error)
-	Signup(req dto.SignupRequest) (*dto.AuthResponse, error)
-	VerifyToken(tokenString string) (*jwt.MapClaims, error)
-	RefreshToken(refreshToken string) (*dto.AuthResponse, error)
-	Logout(sessionID uuid.UUID) error
-	LogoutAll(userID uuid.UUID) error
-
-	// Google OAuth
-	GetGoogleAuthURL(state string) string
-	GenerateStateToken() string
-	HandleGoogleCallback(code string, userAgent, clientIP string) (*dto.AuthResponse, error)
-
-	// Session management
-	CreateSession(userID uuid.UUID, userAgent, clientIP string) (*domain.Session, string, error)
-	ValidateSession(sessionID uuid.UUID) (*domain.Session, error)
-}
-
 type authService struct {
-	userRepo          repository.UserRepository
-	socialAccountRepo repository.SocialAccountRepository
-	sessionRepo       repository.SessionRepository
+	userRepo          domain.UserRepository
+	socialAccountRepo domain.SocialAccountRepository
+	sessionRepo       domain.SessionRepository
 	jwtSecret         string
 	googleOAuthConfig *oauth2.Config
 }
 
 func NewAuthService(
-	userRepo repository.UserRepository,
-	socialAccountRepo repository.SocialAccountRepository,
-	sessionRepo repository.SessionRepository,
-) AuthService {
+	userRepo domain.UserRepository,
+	socialAccountRepo domain.SocialAccountRepository,
+	sessionRepo domain.SessionRepository,
+) domain.AuthService {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "default-secret-change-in-production" // Fallback for development

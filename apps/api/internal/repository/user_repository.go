@@ -9,22 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepository interface {
-	// CRUD operations
-	CreateUser(user *domain.User) error
-	GetUserByID(id uuid.UUID) (*domain.User, error)
-	GetUserByUsername(username string) (*domain.User, error)
-	GetUserByEmail(email string) (*domain.User, error)
-	UpdateUser(id uuid.UUID, updates map[string]interface{}) error
-	DeleteUser(id uuid.UUID) error // Soft delete (GORM handles via DeletedAt)
-	ListUsers(req dto.ListUserRequest) ([]domain.User, int64, error)
-}
-
 type userRepository struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) UserRepository {
+func NewUserRepository(db *gorm.DB) domain.UserRepository {
 	return &userRepository{db: db}
 }
 

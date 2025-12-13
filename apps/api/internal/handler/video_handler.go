@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/service"
 	"fmt"
 	"net/http"
 
@@ -10,10 +10,10 @@ import (
 )
 
 type VideoHandler struct {
-	service service.VideoService
+	service domain.VideoService
 }
 
-func NewVideoHandler(service service.VideoService) *VideoHandler {
+func NewVideoHandler(service domain.VideoService) *VideoHandler {
 	return &VideoHandler{service: service}
 }
 

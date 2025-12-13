@@ -3,7 +3,6 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/repository"
 	"errors"
 	"fmt"
 	"math"
@@ -13,20 +12,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService interface {
-	// CRUD operations
-	CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, error)
-	GetUserByID(id string) (*dto.UserResponse, error)
-	UpdateUser(id string, req dto.UpdateUserRequest) (*dto.UserResponse, error)
-	DeleteUser(id string) error
-	ListUsers(req dto.ListUserRequest) (*dto.UserListResponse, error)
-}
-
 type userService struct {
-	repo repository.UserRepository
+	repo domain.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
+func NewUserService(repo domain.UserRepository) domain.UserService {
 	return &userService{repo: repo}
 }
 

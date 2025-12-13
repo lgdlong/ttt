@@ -8,31 +8,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type VideoTranscriptReviewRepository interface {
-	// Create a new review
-	CreateReview(review *domain.VideoTranscriptReview) error
-
-	// Check if user has already reviewed this video
-	HasUserReviewedVideo(videoID, userID uuid.UUID) (bool, error)
-
-	// Get review count for a specific video
-	GetReviewCountByVideoID(videoID uuid.UUID) (int64, error)
-
-	// Get all reviews for a video
-	GetReviewsByVideoID(videoID uuid.UUID) ([]domain.VideoTranscriptReview, error)
-
-	// Get all reviews by a specific user
-	GetReviewsByUserID(userID uuid.UUID) ([]domain.VideoTranscriptReview, error)
-
-	// Delete a review (admin only, rare use case)
-	DeleteReview(id uint) error
-}
-
 type videoTranscriptReviewRepository struct {
 	db *gorm.DB
 }
 
-func NewVideoTranscriptReviewRepository(db *gorm.DB) VideoTranscriptReviewRepository {
+func NewVideoTranscriptReviewRepository(db *gorm.DB) domain.VideoTranscriptReviewRepository {
 	return &videoTranscriptReviewRepository{db: db}
 }
 

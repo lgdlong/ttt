@@ -3,7 +3,6 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/repository"
 	"context"
 	"fmt"
 	"math"
@@ -58,12 +57,12 @@ type TagServiceV2 interface {
 }
 
 type tagServiceV2 struct {
-	tagRepo   repository.TagRepository
-	videoRepo repository.VideoRepository
+	tagRepo   domain.TagRepository
+	videoRepo domain.VideoRepository
 }
 
 // NewTagServiceV2 creates a new v2 tag service instance
-func NewTagServiceV2(tagRepo repository.TagRepository, videoRepo repository.VideoRepository) TagServiceV2 {
+func NewTagServiceV2(tagRepo domain.TagRepository, videoRepo domain.VideoRepository) TagServiceV2 {
 	return &tagServiceV2{
 		tagRepo:   tagRepo,
 		videoRepo: videoRepo,

@@ -3,7 +3,6 @@ package middleware
 import (
 	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/repository"
 	"net/http"
 	"os"
 	"strings"
@@ -14,7 +13,7 @@ import (
 )
 
 // AuthMiddleware creates JWT authentication middleware
-func AuthMiddleware(userRepo repository.UserRepository) gin.HandlerFunc {
+func AuthMiddleware(userRepo domain.UserRepository) gin.HandlerFunc {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "default-secret-change-in-production"
@@ -193,7 +192,7 @@ func RequireMod() gin.HandlerFunc {
 
 // OptionalAuth middleware allows both authenticated and unauthenticated access
 // If a valid token is present, user info is set in context
-func OptionalAuth(userRepo repository.UserRepository) gin.HandlerFunc {
+func OptionalAuth(userRepo domain.UserRepository) gin.HandlerFunc {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "default-secret-change-in-production"

@@ -7,18 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type SocialAccountRepository interface {
-	Create(account *domain.SocialAccount) error
-	GetByProviderAndSocialID(provider, socialID string) (*domain.SocialAccount, error)
-	GetByUserID(userID uuid.UUID) ([]domain.SocialAccount, error)
-	Delete(id uuid.UUID) error
-}
-
 type socialAccountRepository struct {
 	db *gorm.DB
 }
 
-func NewSocialAccountRepository(db *gorm.DB) SocialAccountRepository {
+func NewSocialAccountRepository(db *gorm.DB) domain.SocialAccountRepository {
 	return &socialAccountRepository{db: db}
 }
 

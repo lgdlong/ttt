@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/service"
 	"net/http"
 	"os"
 	"time"
@@ -11,10 +11,10 @@ import (
 )
 
 type AuthHandler struct {
-	service service.AuthService
+	service domain.AuthService
 }
 
-func NewAuthHandler(service service.AuthService) *AuthHandler {
+func NewAuthHandler(service domain.AuthService) *AuthHandler {
 	return &AuthHandler{service: service}
 }
 

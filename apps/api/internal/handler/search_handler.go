@@ -1,18 +1,18 @@
 package handler
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type SearchHandler struct {
-	service service.VideoService
+	service domain.VideoService
 }
 
-func NewSearchHandler(service service.VideoService) *SearchHandler {
+func NewSearchHandler(service domain.VideoService) *SearchHandler {
 	return &SearchHandler{service: service}
 }
 

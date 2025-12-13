@@ -1,18 +1,18 @@
 package handler
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	service service.UserService
+	service domain.UserService
 }
 
-func NewUserHandler(service service.UserService) *UserHandler {
+func NewUserHandler(service domain.UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 

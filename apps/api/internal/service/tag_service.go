@@ -1,24 +1,17 @@
 package service
 
 import (
-	"api/internal/repository"
+	"api/internal/domain"
 )
 
 // SemanticDuplicateError - REMOVED (legacy Tag V1 struct)
 
-type TagService interface {
-	// ============================================================
-	// Legacy Tag CRUD - REMOVED (use Tag V2 API)
-	// ============================================================
-	// All legacy Tag methods removed to enforce CanonicalTag + TagAlias architecture
-}
-
 type tagService struct {
-	tagRepo   repository.TagRepository
-	videoRepo repository.VideoRepository
+	tagRepo   domain.TagRepository
+	videoRepo domain.VideoRepository
 }
 
-func NewTagService(tagRepo repository.TagRepository, videoRepo repository.VideoRepository) TagService {
+func NewTagService(tagRepo domain.TagRepository, videoRepo domain.VideoRepository) domain.TagService {
 	return &tagService{
 		tagRepo:   tagRepo,
 		videoRepo: videoRepo,

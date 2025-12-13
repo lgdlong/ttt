@@ -9,31 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type VideoRepository interface {
-	// Video operations
-	GetVideoList(req dto.ListVideoRequest) ([]domain.Video, int64, error)
-	GetModVideoList(offset, limit int, searchQuery, tagIDsStr, hasTranscriptStr string) ([]domain.Video, int64, error)
-	GetVideoByID(id uuid.UUID) (*domain.Video, error)
-	GetVideoByYoutubeID(youtubeID string) (*domain.Video, error)
-	GetVideoTranscript(videoID uuid.UUID) ([]domain.TranscriptSegment, error)
-	UpdateSegment(id uint, textContent string) (*domain.TranscriptSegment, error)
-	CreateSegment(videoID uuid.UUID, startTime, endTime int, text string) (*domain.TranscriptSegment, error)
-	Create(video *domain.Video) error
-	Update(video *domain.Video) error
-	Delete(id uuid.UUID) error // Soft delete
-	SearchVideos(query string, page, limit int) ([]domain.Video, int64, error)
-	GetReviewCountsForVideos(videoIDs []uuid.UUID) (map[uuid.UUID]int, error)
-
-	// Search operations
-	SearchTranscripts(query string, limit int) ([]dto.TranscriptSearchResult, error)
-	SearchTagsByVector(embedding []float32, limit int, minSimilarity float64) ([]dto.TagSearchResult, error)
-}
-
 type videoRepository struct {
 	db *gorm.DB
 }
 
-func NewVideoRepository(db *gorm.DB) VideoRepository {
+func NewVideoRepository(db *gorm.DB) domain.VideoRepository {
 	return &videoRepository{db: db}
 }
 

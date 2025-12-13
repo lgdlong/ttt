@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
 	"api/internal/service"
 	"fmt"
@@ -11,11 +12,11 @@ import (
 )
 
 type TagHandler struct {
-	service   service.TagService
+	service   domain.TagService
 	serviceV2 service.TagServiceV2
 }
 
-func NewTagHandler(service service.TagService, serviceV2 service.TagServiceV2) *TagHandler {
+func NewTagHandler(service domain.TagService, serviceV2 service.TagServiceV2) *TagHandler {
 	return &TagHandler{
 		service:   service,
 		serviceV2: serviceV2,

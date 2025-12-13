@@ -1,20 +1,15 @@
 package service
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/repository"
 )
 
-type StatsService interface {
-	GetAdminStats() (*dto.AdminStatsResponse, error)
-	GetModStats() (*dto.ModStatsResponse, error)
-}
-
 type statsService struct {
-	statsRepo repository.StatsRepository
+	statsRepo domain.StatsRepository
 }
 
-func NewStatsService(statsRepo repository.StatsRepository) StatsService {
+func NewStatsService(statsRepo domain.StatsRepository) domain.StatsService {
 	return &statsService{
 		statsRepo: statsRepo,
 	}

@@ -1,17 +1,17 @@
 package handler
 
 import (
-	"api/internal/service"
+	"api/internal/domain"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 type StatsHandler struct {
-	statsService service.StatsService
+	statsService domain.StatsService
 }
 
-func NewStatsHandler(statsService service.StatsService) *StatsHandler {
+func NewStatsHandler(statsService domain.StatsService) *StatsHandler {
 	return &StatsHandler{
 		statsService: statsService,
 	}

@@ -1,9 +1,9 @@
 package routes
 
 import (
+	"api/internal/domain"
 	"api/internal/handler"
 	"api/internal/middleware"
-	"api/internal/repository"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +19,7 @@ func RegisterRoutes(
 	tagHandler *handler.TagHandler,
 	statsHandler *handler.StatsHandler,
 	reviewHandler *handler.VideoTranscriptReviewHandler,
-	userRepo repository.UserRepository,
+	userRepo domain.UserRepository,
 ) {
 	// Apply global middleware
 	router.Use(middleware.CORS())

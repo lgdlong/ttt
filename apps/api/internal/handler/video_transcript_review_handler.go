@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,10 +10,10 @@ import (
 )
 
 type VideoTranscriptReviewHandler struct {
-	service service.VideoTranscriptReviewService
+	service domain.VideoTranscriptReviewService
 }
 
-func NewVideoTranscriptReviewHandler(service service.VideoTranscriptReviewService) *VideoTranscriptReviewHandler {
+func NewVideoTranscriptReviewHandler(service domain.VideoTranscriptReviewService) *VideoTranscriptReviewHandler {
 	return &VideoTranscriptReviewHandler{service: service}
 }
 

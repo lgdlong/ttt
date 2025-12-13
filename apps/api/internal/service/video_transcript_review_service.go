@@ -3,35 +3,23 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
-	"api/internal/repository"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type VideoTranscriptReviewService interface {
-	// Submit a review for a video
-	SubmitReview(videoID, userID uuid.UUID, req dto.SubmitReviewRequest) (*dto.VideoTranscriptReviewResponse, error)
-
-	// Get review statistics for a video
-	GetVideoReviewStats(videoID uuid.UUID) (int64, error)
-
-	// Check if user has reviewed a video
-	HasUserReviewedVideo(videoID, userID uuid.UUID) (bool, error)
-}
-
 type videoTranscriptReviewService struct {
-	reviewRepo repository.VideoTranscriptReviewRepository
-	videoRepo  repository.VideoRepository
-	userRepo   repository.UserRepository
+	reviewRepo domain.VideoTranscriptReviewRepository
+	videoRepo  domain.VideoRepository
+	userRepo   domain.UserRepository
 }
 
 func NewVideoTranscriptReviewService(
-	reviewRepo repository.VideoTranscriptReviewRepository,
-	videoRepo repository.VideoRepository,
-	userRepo repository.UserRepository,
-) VideoTranscriptReviewService {
+	reviewRepo domain.VideoTranscriptReviewRepository,
+	videoRepo domain.VideoRepository,
+	userRepo domain.UserRepository,
+) domain.VideoTranscriptReviewService {
 	return &videoTranscriptReviewService{
 		reviewRepo: reviewRepo,
 		videoRepo:  videoRepo,

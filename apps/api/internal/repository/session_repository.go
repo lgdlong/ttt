@@ -8,24 +8,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type SessionRepository interface {
-	Create(session *domain.Session) error
-	GetByID(id uuid.UUID) (*domain.Session, error)
-	GetByRefreshToken(token string) (*domain.Session, error)
-	GetByUserID(userID uuid.UUID) ([]domain.Session, error)
-	GetActiveByUserID(userID uuid.UUID) ([]domain.Session, error)
-	Update(session *domain.Session) error
-	BlockSession(id uuid.UUID) error
-	BlockAllUserSessions(userID uuid.UUID) error
-	Delete(id uuid.UUID) error
-	DeleteExpired() error
-}
-
 type sessionRepository struct {
 	db *gorm.DB
 }
 
-func NewSessionRepository(db *gorm.DB) SessionRepository {
+func NewSessionRepository(db *gorm.DB) domain.SessionRepository {
 	return &sessionRepository{db: db}
 }
 
