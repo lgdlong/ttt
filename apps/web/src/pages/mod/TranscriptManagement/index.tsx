@@ -26,7 +26,7 @@ const TranscriptManagement: React.FC = () => {
   } = useTranscriptDialog()
 
   // Hàm chuyển sang trang Editor
-  const handleEditTranscript = (videoId: number) => {
+  const handleEditTranscript = (videoId: string) => {
     navigate(`/mod/videos/${videoId}/transcript`)
   }
 

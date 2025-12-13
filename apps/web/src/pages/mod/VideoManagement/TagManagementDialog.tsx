@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -11,7 +11,10 @@ import {
   Stack,
   Autocomplete,
   TextField,
+  CircularProgress,
 } from '@mui/material'
+import { useQuery } from '@tanstack/react-query'
+import { searchApprovedTags } from '~/api/modApi'
 import type { Video } from '~types/video'
 import type { TagResponse } from '~types/tag'
 
@@ -20,10 +23,9 @@ interface TagManagementDialogProps {
   onClose: () => void
   video: Video | null
   videoTags: TagResponse[]
-  availableTags: TagResponse[]
-  tagToAdd: TagResponse | null
-  onTagToAddChange: (tag: TagResponse | null) => void
-  onAddTag: () => void
+  tagsToAdd: TagResponse[]
+  onTagsToAddChange: (tags: TagResponse[]) => void
+  onAddTags: () => void
   onRemoveTag: (tagId: string) => void
   isAdding: boolean
 }
@@ -33,13 +35,24 @@ export const TagManagementDialog: React.FC<TagManagementDialogProps> = ({
   onClose,
   video,
   videoTags,
-  availableTags,
-  tagToAdd,
-  onTagToAddChange,
-  onAddTag,
+  tagsToAdd,
+  onTagsToAddChange,
+  onAddTags,
   onRemoveTag,
   isAdding,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Query approved tags với debounce
+  const { data: searchResults = [], isLoading: isSearching } = useQuery({
+    queryKey: ['approved-tags-search', searchQuery],
+    queryFn: () => searchApprovedTags(searchQuery, 20),
+    enabled: searchQuery.length >= 1,
+    staleTime: 30000, // Cache 30s
+  })
+
+  // Filter out tags already added to video
+  const availableTags = searchResults.filter((tag) => !videoTags.some((vTag) => vTag.id === tag.id))
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Quản lý Tags cho Video</DialogTitle>
@@ -76,28 +89,65 @@ export const TagManagementDialog: React.FC<TagManagementDialogProps> = ({
           )}
         </Box>
 
-        {/* Add tag */}
+        {/* Add tags - Multi-select with search */}
         <Typography variant="subtitle2" gutterBottom>
-          Thêm tag:
+          Thêm tags (có thể chọn nhiều):
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
           <Autocomplete
+            multiple
             fullWidth
             options={availableTags}
             getOptionLabel={(option) => option.name}
-            value={tagToAdd}
-            onChange={(_, newValue) => onTagToAddChange(newValue)}
+            value={tagsToAdd}
+            onChange={(_, newValue) => onTagsToAddChange(newValue)}
+            loading={isSearching}
+            inputValue={searchQuery}
+            onInputChange={(_, newInputValue) => setSearchQuery(newInputValue)}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            filterOptions={(x) => x} // Disable client-side filtering (use server search)
             renderInput={(params) => (
-              <TextField {...params} size="small" placeholder="Chọn tag..." />
+              <TextField
+                {...params}
+                size="small"
+                placeholder="Tìm kiếm tag (chỉ approved)..."
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {isSearching && <CircularProgress color="inherit" size={20} />}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
             )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                <Chip
+                  label={option.name}
+                  size="small"
+                  color="success"
+                  variant="outlined"
+                  sx={{ borderRadius: 1, mr: 1 }}
+                />
+                {option.is_approved && (
+                  <Typography variant="caption" color="success.main">
+                    (đã duyệt)
+                  </Typography>
+                )}
+              </li>
+            )}
+            noOptionsText={searchQuery.length < 1 ? 'Nhập để tìm kiếm...' : 'Không tìm thấy tag'}
           />
           <Button
             variant="contained"
-            onClick={onAddTag}
-            disabled={!tagToAdd || isAdding}
+            onClick={onAddTags}
+            disabled={tagsToAdd.length === 0 || isAdding}
             sx={{ borderRadius: 0 }}
+            fullWidth
           >
-            Thêm
+            {isAdding ? 'Đang thêm...' : `Thêm ${tagsToAdd.length} tag(s)`}
           </Button>
         </Box>
       </DialogContent>

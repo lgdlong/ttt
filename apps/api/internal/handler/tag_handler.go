@@ -320,6 +320,7 @@ func (h *TagHandler) CreateCanonicalTag(c *gin.Context) {
 // @Produce json
 // @Param q query string true "Search query"
 // @Param limit query int false "Max results" default(10)
+// @Param approved_only query bool false "Only return approved tags" default(false)
 // @Success 200 {array} dto.TagResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Router /v2/mod/tags/search [get]
@@ -336,7 +337,9 @@ func (h *TagHandler) SearchCanonicalTags(c *gin.Context) {
 		fmt.Sscanf(limitStr, "%d", &limit)
 	}
 
-	tags, err := h.serviceV2.SearchCanonicalTags(c.Request.Context(), query, limit)
+	approvedOnly := c.Query("approved_only") == "true"
+
+	tags, err := h.serviceV2.SearchCanonicalTags(c.Request.Context(), query, limit, approvedOnly)
 	if err != nil {
 		apiResponse := dto.NewInternalErrorResponse("Failed to search canonical tags: " + err.Error())
 		c.JSON(http.StatusInternalServerError, apiResponse)

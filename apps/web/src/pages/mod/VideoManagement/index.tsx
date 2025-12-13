@@ -27,7 +27,7 @@ const VideoManagement: React.FC = () => {
 
   // Tag management state
   const [videoTags, setVideoTags] = useState<TagResponse[]>([])
-  const [tagToAdd, setTagToAdd] = useState<TagResponse | null>(null)
+  const [tagsToAdd, setTagsToAdd] = useState<TagResponse[]>([])
 
   // Debounce search
   useEffect(() => {
@@ -64,7 +64,10 @@ const VideoManagement: React.FC = () => {
   const { createMutation, deleteMutation, addTagMutation, removeTagMutation } = useVideoMutations({
     onCreateSuccess: () => handleCloseAddDialog(),
     onDeleteSuccess: () => handleCloseDeleteDialog(),
-    onAddTagSuccess: (updatedVideo) => setVideoTags(updatedVideo.tags || []),
+    onAddTagSuccess: (updatedTags) => {
+      setVideoTags(updatedTags)
+      setTagsToAdd([])
+    },
     onRemoveTagSuccess: () => {
       if (selectedVideo && removeTagMutation.variables?.tagId) {
         const removedId = String(removeTagMutation.variables.tagId)
@@ -104,7 +107,7 @@ const VideoManagement: React.FC = () => {
   const handleOpenTagDialog = useCallback((video: Video) => {
     setSelectedVideo(video)
     setVideoTags(video.tags || [])
-    setTagToAdd(null)
+    setTagsToAdd([])
     setOpenTagDialog(true)
   }, [])
 
@@ -112,7 +115,7 @@ const VideoManagement: React.FC = () => {
     setOpenTagDialog(false)
     setSelectedVideo(null)
     setVideoTags([])
-    setTagToAdd(null)
+    setTagsToAdd([])
   }, [])
 
   const handleSaveVideo = useCallback(
@@ -127,12 +130,12 @@ const VideoManagement: React.FC = () => {
     deleteMutation.mutate(selectedVideo.id)
   }, [selectedVideo, deleteMutation])
 
-  const handleAddTagToVideo = useCallback(() => {
-    if (!selectedVideo || !tagToAdd) return
-    // TODO: Implement add tag via v2 API
-    setVideoTags((prev) => [...prev, tagToAdd])
-    setTagToAdd(null)
-  }, [selectedVideo, tagToAdd])
+  const handleAddTagsToVideo = useCallback(() => {
+    if (!selectedVideo || tagsToAdd.length === 0) return
+    // Use v2 API - pass tag IDs as strings (they are UUIDs)
+    const tagIds = tagsToAdd.map((tag) => tag.id)
+    addTagMutation.mutate({ videoId: selectedVideo.id, tagIds })
+  }, [selectedVideo, tagsToAdd, addTagMutation])
 
   const handleRemoveTagFromVideo = useCallback(
     (tagId: string) => {
@@ -145,10 +148,7 @@ const VideoManagement: React.FC = () => {
     [selectedVideo, removeTagMutation]
   )
 
-  // Available tags (exclude already added)
-  const availableTags = (tagsData?.tags || []).filter(
-    (tag) => !videoTags.some((vt) => vt.id === tag.id)
-  )
+  // Note: availableTags filtering is now handled in TagManagementDialog
 
   if (error) {
     return (
@@ -257,10 +257,9 @@ const VideoManagement: React.FC = () => {
         onClose={handleCloseTagDialog}
         video={selectedVideo}
         videoTags={videoTags}
-        availableTags={availableTags}
-        tagToAdd={tagToAdd}
-        onTagToAddChange={setTagToAdd}
-        onAddTag={handleAddTagToVideo}
+        tagsToAdd={tagsToAdd}
+        onTagsToAddChange={setTagsToAdd}
+        onAddTags={handleAddTagsToVideo}
         onRemoveTag={handleRemoveTagFromVideo}
         isAdding={addTagMutation.isPending}
       />

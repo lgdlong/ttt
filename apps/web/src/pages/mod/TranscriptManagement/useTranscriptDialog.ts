@@ -9,7 +9,7 @@ export const useTranscriptDialog = () => {
   const [transcript, setTranscript] = useState<TranscriptResponse | null>(null)
   const [loadingTranscript, setLoadingTranscript] = useState(false)
 
-  const fetchTranscript = async (videoId: number): Promise<TranscriptResponse | null> => {
+  const fetchTranscript = async (videoId: string): Promise<TranscriptResponse | null> => {
     try {
       const response = await axiosInstance.get(`/videos/${videoId}/transcript`)
       return response.data

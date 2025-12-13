@@ -38,9 +38,10 @@ type TagDuplicateResponse struct {
 
 // TagListRequest - Request params for listing tags
 type TagListRequest struct {
-	Page  int    `form:"page" binding:"omitempty,min=1" default:"1"`
-	Limit int    `form:"limit" binding:"omitempty,min=1,max=100" default:"20"`
-	Query string `form:"query" binding:"omitempty"`
+	Page         int    `form:"page" binding:"omitempty,min=1" default:"1"`
+	Limit        int    `form:"limit" binding:"omitempty,min=1,max=100" default:"20"`
+	Query        string `form:"query" binding:"omitempty"`
+	ApprovedOnly bool   `form:"approved_only" default:"false"`
 }
 
 // TagListResponse - Response with list of tags and pagination

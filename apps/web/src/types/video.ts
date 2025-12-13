@@ -157,7 +157,7 @@ export interface TranscriptParagraph {
  * Video model for mod dashboard
  */
 export interface Video {
-  id: number
+  id: string // UUID from backend
   youtube_id: string
   title: string
   description?: string

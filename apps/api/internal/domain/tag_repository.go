@@ -40,7 +40,7 @@ type TagRepository interface {
 	ListCanonicalTags(ctx context.Context, page, limit int) ([]CanonicalTag, int64, error)
 
 	// SearchCanonicalTags searches canonical tags (hybrid: SQL LIKE + Vector)
-	SearchCanonicalTags(ctx context.Context, query string, limit int) ([]CanonicalTag, error)
+	SearchCanonicalTags(ctx context.Context, query string, limit int, approvedOnly bool) ([]CanonicalTag, error)
 
 	// ============================================================
 	// Video-Canonical Tag Relationship

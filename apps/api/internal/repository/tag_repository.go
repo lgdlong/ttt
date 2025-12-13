@@ -225,13 +225,18 @@ func (r *tagRepository) ListCanonicalTags(ctx context.Context, page, limit int) 
 }
 
 // SearchCanonicalTags searches canonical tags using hybrid approach
-func (r *tagRepository) SearchCanonicalTags(ctx context.Context, query string, limit int) ([]domain.CanonicalTag, error) {
+func (r *tagRepository) SearchCanonicalTags(ctx context.Context, query string, limit int, approvedOnly bool) ([]domain.CanonicalTag, error) {
 	var canonicals []domain.CanonicalTag
 
 	// Phase 1: SQL LIKE search (fast & free)
-	if err := r.db.WithContext(ctx).
-		Where("display_name ILIKE ?", "%"+query+"%").
-		Order("display_name ASC").
+	db := r.db.WithContext(ctx).
+		Where("display_name ILIKE ?", "%"+query+"%")
+
+	if approvedOnly {
+		db = db.Where("is_approved = ?", true)
+	}
+
+	if err := db.Order("display_name ASC").
 		Limit(limit).
 		Find(&canonicals).Error; err != nil {
 		return nil, fmt.Errorf("sql search failed: %w", err)
@@ -284,9 +289,13 @@ func (r *tagRepository) SearchCanonicalTags(ctx context.Context, query string, l
 
 	// Load canonical tags
 	if len(canonicalIDs) > 0 {
-		if err := r.db.WithContext(ctx).
-			Where("id IN ?", canonicalIDs).
-			Find(&canonicals).Error; err != nil {
+		db := r.db.WithContext(ctx).Where("id IN ?", canonicalIDs)
+
+		if approvedOnly {
+			db = db.Where("is_approved = ?", true)
+		}
+
+		if err := db.Find(&canonicals).Error; err != nil {
 			return nil, fmt.Errorf("failed to load canonical tags: %w", err)
 		}
 	}

@@ -240,7 +240,7 @@ func (s *tagServiceV2) ListCanonicalTags(ctx context.Context, req dto.TagListReq
 
 	// If query provided, search instead of list
 	if req.Query != "" {
-		canonicals, err := s.tagRepo.SearchCanonicalTags(ctx, req.Query, req.Limit)
+		canonicals, err := s.tagRepo.SearchCanonicalTags(ctx, req.Query, req.Limit, req.ApprovedOnly)
 		if err != nil {
 			return nil, fmt.Errorf("failed to search canonical tags: %w", err)
 		}
@@ -284,12 +284,12 @@ func (s *tagServiceV2) ListCanonicalTags(ctx context.Context, req dto.TagListReq
 	}, nil
 }
 
-func (s *tagServiceV2) SearchCanonicalTags(ctx context.Context, query string, limit int) ([]dto.TagResponse, error) {
+func (s *tagServiceV2) SearchCanonicalTags(ctx context.Context, query string, limit int, approvedOnly bool) ([]dto.TagResponse, error) {
 	if limit < 1 {
 		limit = 20
 	}
 
-	canonicals, err := s.tagRepo.SearchCanonicalTags(ctx, query, limit)
+	canonicals, err := s.tagRepo.SearchCanonicalTags(ctx, query, limit, approvedOnly)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search canonical tags: %w", err)
 	}

@@ -22,7 +22,7 @@ type TagServiceV2 interface {
 
 	GetCanonicalTagByID(ctx context.Context, id string) (*dto.TagResponse, error)
 	ListCanonicalTags(ctx context.Context, req dto.TagListRequest) (*dto.TagListResponse, error)
-	SearchCanonicalTags(ctx context.Context, query string, limit int) ([]dto.TagResponse, error)
+	SearchCanonicalTags(ctx context.Context, query string, limit int, approvedOnly bool) ([]dto.TagResponse, error)
 
 	// ============================================================
 	// Video-Canonical Tag Management

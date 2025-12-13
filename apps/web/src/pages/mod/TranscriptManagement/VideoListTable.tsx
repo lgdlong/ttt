@@ -28,7 +28,7 @@ interface VideoListTableProps {
   isLoading: boolean
   searchQuery: string
   onViewTranscript: (video: Video) => void
-  onEditTranscript: (videoId: number) => void
+  onEditTranscript: (videoId: string) => void
 }
 
 export const VideoListTable: React.FC<VideoListTableProps> = ({
@@ -119,23 +119,40 @@ export const VideoListTable: React.FC<VideoListTableProps> = ({
                 </Box>
               </TableCell>
               <TableCell>
-                {video.has_transcript ? (
-                  <Chip
-                    icon={<HasTranscriptIcon sx={{ fontSize: 16 }} />}
-                    label="Có transcript"
-                    size="small"
-                    color="success"
-                    sx={{ borderRadius: 0 }}
-                  />
-                ) : (
-                  <Chip
-                    icon={<NoTranscriptIcon sx={{ fontSize: 16 }} />}
-                    label="Chưa có"
-                    size="small"
-                    color="default"
-                    sx={{ borderRadius: 0 }}
-                  />
-                )}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {video.has_transcript ? (
+                    <Chip
+                      icon={<HasTranscriptIcon sx={{ fontSize: 16 }} />}
+                      label="Có transcript"
+                      size="small"
+                      color="success"
+                      sx={{ borderRadius: 0 }}
+                    />
+                  ) : (
+                    <Chip
+                      icon={<NoTranscriptIcon sx={{ fontSize: 16 }} />}
+                      label="Chưa có"
+                      size="small"
+                      color="default"
+                      sx={{ borderRadius: 0 }}
+                    />
+                  )}
+                  {/* Display video tags if available */}
+                  {video.tags && video.tags.length > 0 && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                      {video.tags.map((tag) => (
+                        <Chip
+                          key={tag.id}
+                          label={tag.name}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          sx={{ borderRadius: 1, fontSize: 11 }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Box>
               </TableCell>
               <TableCell align="right">
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
