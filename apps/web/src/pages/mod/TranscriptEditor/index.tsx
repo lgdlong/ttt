@@ -4,8 +4,7 @@ import { CheckCircle, Save, Add } from '@mui/icons-material'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { YouTubePlayer } from 'react-youtube'
-import axiosInstance from '~/lib/axios'
-import type { Video, SegmentResponse } from '~/types/video'
+import { fetchVideoById, fetchVideoTranscript } from '~/api/videoApi'
 import { VideoPlayerPanel } from './VideoPlayerPanel'
 import { useVideoSync } from './useVideoSync'
 import { useTranscriptEditor } from './useTranscriptEditor'
@@ -31,8 +30,7 @@ export const TranscriptEditor: React.FC = () => {
     queryKey: ['video', videoId],
     queryFn: async () => {
       if (!videoId) throw new Error('Video ID không hợp lệ')
-      const response = await axiosInstance.get<Video>(`/videos/${videoId}`)
-      return response.data
+      return fetchVideoById(videoId)
     },
     enabled: !!videoId,
   })
@@ -47,10 +45,7 @@ export const TranscriptEditor: React.FC = () => {
     queryKey: ['transcript', videoId],
     queryFn: async () => {
       if (!videoId) throw new Error('Invalid video ID')
-      const response = await axiosInstance.get<{ segments: SegmentResponse[] }>(
-        `/videos/${videoId}/transcript`
-      )
-      return response.data
+      return fetchVideoTranscript(videoId)
     },
     enabled: !!videoId,
   })

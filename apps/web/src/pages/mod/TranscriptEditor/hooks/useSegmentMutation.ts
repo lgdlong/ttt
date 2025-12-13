@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import axiosInstance from '~/lib/axios'
+import { updateTranscriptSegment } from '~/api/videoApi'
 import type { SegmentResponse } from '~/types/video'
 
 interface UpdateSegmentVariables {
@@ -25,10 +25,7 @@ export const useUpdateSegment = (videoId: string) => {
 
   return useMutation({
     mutationFn: async ({ id, text }: UpdateSegmentVariables) => {
-      const response = await axiosInstance.patch<SegmentResponse>(`/transcript-segments/${id}`, {
-        text_content: text,
-      })
-      return response.data
+      return updateTranscriptSegment(id, { text_content: text })
     },
 
     // CRITICAL: Optimistic update - Update UI immediately

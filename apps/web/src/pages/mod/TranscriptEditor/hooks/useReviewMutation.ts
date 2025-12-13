@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import axiosInstance from '~/lib/axios'
+import { submitVideoReview, getUserReviewStatus, getVideoReviewStats } from '~/api/videoApi'
 import type { SubmitReviewRequest, VideoTranscriptReviewResponse } from '~/types/video'
 
 interface UseSubmitReviewParams {
@@ -33,11 +33,7 @@ export function useSubmitReview({ videoId }: UseSubmitReviewParams) {
     mutationFn: async (
       request: SubmitReviewRequest = {}
     ): Promise<VideoTranscriptReviewResponse> => {
-      const response = await axiosInstance.post<VideoTranscriptReviewResponse>(
-        `/videos/${videoId}/reviews`,
-        request
-      )
-      return response.data
+      return submitVideoReview(videoId, request)
     },
     onSuccess: () => {
       // Invalidate review stats and user review status queries
@@ -70,11 +66,7 @@ export function useUserReviewStatus({ videoId }: UseSubmitReviewParams) {
   return {
     queryKey: ['user-review-status', videoId],
     queryFn: async () => {
-      const response = await axiosInstance.get<{
-        video_id: string
-        has_reviewed: boolean
-      }>(`/videos/${videoId}/reviews/status`)
-      return response.data
+      return getUserReviewStatus(videoId)
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -94,11 +86,7 @@ export function useVideoReviewStats({ videoId }: UseSubmitReviewParams) {
   return {
     queryKey: ['video-review-stats', videoId],
     queryFn: async () => {
-      const response = await axiosInstance.get<{
-        video_id: string
-        review_count: number
-      }>(`/videos/${videoId}/reviews/stats`)
-      return response.data
+      return getVideoReviewStats(videoId)
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
