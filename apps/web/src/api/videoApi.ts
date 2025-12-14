@@ -6,9 +6,6 @@ import type {
   TranscriptResponse,
   TranscriptSearchRequest,
   TranscriptSearchResponse,
-  TagSearchRequest,
-  TagSearchResponse,
-  TagResponse,
   ErrorResponse,
   SegmentResponse,
   SubmitReviewRequest,
@@ -82,25 +79,6 @@ export async function searchTranscripts(
 }
 
 /**
- * Search tags by semantic similarity
- * GET /api/search/tags
- */
-export async function searchTags(params: TagSearchRequest): Promise<TagSearchResponse> {
-  const response = await apiClient.get<TagSearchResponse>('/search/tags', { params })
-  return response.data
-}
-
-/**
- * Get all unique tags (for filter/category list)
- * Note: This is derived from searchTags with empty query or needs a new endpoint
- */
-export async function fetchAllTags(): Promise<TagResponse[]> {
-  // TODO: Backend should provide a dedicated endpoint like GET /api/tags
-  // For now, we return empty array - frontend will need to handle this
-  return []
-}
-
-/**
  * Update a transcript segment
  * PATCH /api/v1/transcript-segments/:id
  */
@@ -159,8 +137,6 @@ export const videoApi = {
   fetchVideoById,
   fetchVideoTranscript,
   searchTranscripts,
-  searchTags,
-  fetchAllTags,
   updateTranscriptSegment,
   submitVideoReview,
   getUserReviewStatus,
