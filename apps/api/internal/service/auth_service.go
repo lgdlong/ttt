@@ -325,6 +325,7 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 		Username:     username,
 		Email:        googleUser.Email,
 		PasswordHash: "", // No password for OAuth users
+		FullName:     googleUser.Name,
 		Role:         string(domain.UserRoleUser),
 		IsActive:     true,
 	}

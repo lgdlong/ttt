@@ -43,6 +43,7 @@ func (s *userService) CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, 
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
+		FullName:     req.FullName,
 		Role:         string(domain.UserRoleUser), // Always default to 'user' role
 		IsActive:     true,                        // Default: active
 	}
@@ -101,6 +102,10 @@ func (s *userService) UpdateUser(id string, req dto.UpdateUserRequest) (*dto.Use
 			return nil, fmt.Errorf("failed to hash password: %w", err)
 		}
 		updates["password_hash"] = string(hashedPassword)
+	}
+
+	if req.FullName != nil {
+		updates["full_name"] = *req.FullName
 	}
 
 	// Note: Role and IsActive updates removed - must be handled via admin-only endpoints
