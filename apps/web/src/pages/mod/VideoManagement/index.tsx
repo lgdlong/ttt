@@ -82,7 +82,7 @@ const VideoManagement: React.FC = () => {
   }, [])
 
   const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setPageSize(parseInt(event.target.value, 10))
+    setPageSize(Number.parseInt(event.target.value, 10))
     setPage(0)
   }, [])
 

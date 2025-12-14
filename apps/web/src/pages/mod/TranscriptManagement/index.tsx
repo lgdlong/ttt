@@ -95,7 +95,7 @@ const TranscriptManagement: React.FC = () => {
           onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={pageSize}
           onRowsPerPageChange={(e) => {
-            setPageSize(parseInt(e.target.value, 10))
+            setPageSize(Number.parseInt(e.target.value, 10))
             setPage(0)
           }}
           rowsPerPageOptions={[5, 10, 25, 50]}
