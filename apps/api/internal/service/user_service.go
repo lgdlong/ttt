@@ -82,16 +82,22 @@ func (s *userService) UpdateUser(id string, req dto.UpdateUserRequest) (*dto.Use
 
 	if req.Username != nil {
 		// Check if new username already exists
-		if existingUser, err := s.repo.GetUserByUsername(*req.Username); err == nil && existingUser.ID != userID {
+		existingUser, err := s.repo.GetUserByUsername(*req.Username)
+		if err == nil && existingUser.ID != userID {
 			return nil, errors.New("username already exists")
+		} else if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("failed to check username uniqueness: %w", err)
 		}
 		updates["username"] = *req.Username
 	}
 
 	if req.Email != nil {
 		// Check if new email already exists
-		if existingUser, err := s.repo.GetUserByEmail(*req.Email); err == nil && existingUser.ID != userID {
+		existingUser, err := s.repo.GetUserByEmail(*req.Email)
+		if err == nil && existingUser.ID != userID {
 			return nil, errors.New("email already exists")
+		} else if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("failed to check email uniqueness: %w", err)
 		}
 		updates["email"] = *req.Email
 	}
