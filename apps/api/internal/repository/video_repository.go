@@ -24,14 +24,29 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 
 	query := r.db.Model(&domain.Video{}).Preload("CanonicalTags")
 
+	// Apply search query if provided (searches in Title OR Tag Name)
+	if req.Q != "" {
+		searchQuery := "%" + req.Q + "%"
+		// LEFT JOIN to canonical_tags for tag name search
+		query = query.Joins("LEFT JOIN video_canonical_tags vct ON vct.video_id = videos.id").
+			Joins("LEFT JOIN canonical_tags ct ON ct.id = vct.canonical_tag_id").
+			Where("LOWER(videos.title) LIKE LOWER(?) OR LOWER(ct.display_name) LIKE LOWER(?)", searchQuery, searchQuery).
+			Group("videos.id") // Prevent duplicates when video matches multiple tags
+	}
+
 	// Apply tag filter if provided
 	if req.TagID != "" {
 		tagUUID, err := uuid.Parse(req.TagID)
 		if err != nil {
 			return nil, 0, fmt.Errorf("invalid tag_id format: %w", err)
 		}
-		query = query.Joins("JOIN video_canonical_tags ON video_canonical_tags.video_id = videos.id").
-			Where("video_canonical_tags.canonical_tag_id = ?", tagUUID)
+		// If we already have JOINs from search, we need to add another condition
+		if req.Q != "" {
+			query = query.Where("vct.canonical_tag_id = ?", tagUUID)
+		} else {
+			query = query.Joins("JOIN video_canonical_tags ON video_canonical_tags.video_id = videos.id").
+				Where("video_canonical_tags.canonical_tag_id = ?", tagUUID)
+		}
 	}
 
 	// Apply has_transcript filter if provided
@@ -39,19 +54,29 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 		query = query.Where("has_transcript = ?", *req.HasTranscript)
 	}
 
-	// Count total before pagination
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
+	// Count total before pagination (need to count distinct videos)
+	countQuery := query.Session(&gorm.Session{})
+	if req.Q != "" {
+		// When using GROUP BY, we need to count distinct video IDs
+		var countResult int64
+		if err := r.db.Raw("SELECT COUNT(*) FROM (?) AS subquery", countQuery.Select("videos.id")).Scan(&countResult).Error; err != nil {
+			return nil, 0, err
+		}
+		total = countResult
+	} else {
+		if err := countQuery.Count(&total).Error; err != nil {
+			return nil, 0, err
+		}
 	}
 
 	// Apply sorting
 	switch req.Sort {
 	case "popular", "views":
-		query = query.Order("view_count DESC")
+		query = query.Order("videos.view_count DESC")
 	case "newest":
-		query = query.Order("published_at DESC")
+		query = query.Order("videos.published_at DESC")
 	default:
-		query = query.Order("created_at DESC")
+		query = query.Order("videos.created_at DESC")
 	}
 
 	// Apply pagination

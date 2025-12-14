@@ -96,6 +96,13 @@ func RegisterRoutes(
 			search.GET("/tags", searchHandler.SearchTags)
 		}
 
+		// Tags endpoints (public - for tag navigation)
+		tags := v1.Group("/tags")
+		{
+			tags.GET("", tagHandler.ListCanonicalTags)   // List all tags
+			tags.GET("/:id", tagHandler.GetCanonicalTag) // Get tag by ID
+		}
+
 		// Admin endpoints - requires admin role
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(userRepo))
