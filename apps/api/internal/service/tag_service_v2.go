@@ -386,10 +386,20 @@ func (s *tagServiceV2) GetVideoCanonicalTags(ctx context.Context, videoID string
 
 // toCanonicalTagResponse converts domain.CanonicalTag to dto.TagResponse
 func (s *tagServiceV2) toCanonicalTagResponse(canonical *domain.CanonicalTag) *dto.TagResponse {
+	// Map aliases to string array (RawText field)
+	aliases := make([]string, 0, len(canonical.Aliases))
+	for _, alias := range canonical.Aliases {
+		// Skip if alias matches the canonical name to avoid duplication
+		if alias.RawText != canonical.DisplayName {
+			aliases = append(aliases, alias.RawText)
+		}
+	}
+
 	return &dto.TagResponse{
 		ID:         canonical.ID.String(),
 		Name:       canonical.DisplayName,
 		IsApproved: canonical.IsApproved,
+		Aliases:    aliases,
 	}
 }
 

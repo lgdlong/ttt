@@ -16,9 +16,10 @@ type UpdateTagRequest struct {
 
 // TagResponse - Tag data for API responses
 type TagResponse struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	IsApproved bool   `json:"is_approved"`
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	IsApproved bool     `json:"is_approved"`
+	Aliases    []string `json:"aliases,omitempty"` // List of alias names for display
 }
 
 // CanonicalTagResponse - Canonical tag response with alias metadata
