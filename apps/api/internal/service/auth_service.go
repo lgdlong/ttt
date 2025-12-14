@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -54,7 +55,7 @@ func NewAuthService(
 		}
 		if env == "development" || env == "test" {
 			jwtSecret = "dev-insecure-secret" // Only allow fallback in dev/test
-			fmt.Println("[WARN] JWT_SECRET is unset, using insecure in-memory secret (dev/test only)")
+			slog.Warn("JWT_SECRET is unset, using insecure in-memory secret (dev/test only)")
 		} else {
 			// Fail fast in production/staging
 			panic("FATAL: JWT_SECRET environment variable is required in production. Refuse to start with insecure secret.")

@@ -5,6 +5,7 @@ import (
 	"api/internal/infrastructure"
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/pgvector/pgvector-go"
@@ -258,7 +259,7 @@ func (r *tagRepository) SearchCanonicalTags(ctx context.Context, query string, l
 	// Generate embedding for query
 	embedding, err := r.openAIClient.GetEmbedding(ctx, query)
 	if err != nil {
-		fmt.Printf("Warning: Vector search failed for query '%s': %v\n", query, err)
+		slog.Warn("Vector search failed for query", "query", query, "error", err)
 		return canonicals, nil
 	}
 

@@ -5,6 +5,7 @@ import (
 	"api/internal/dto"
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 
 	"github.com/google/uuid"
@@ -58,16 +59,14 @@ const AUTO_MERGE_THRESHOLD = 0.40 // 85% similarity
 // - isNewTag: true if new canonical was created, false if existing
 // - error: Only critical errors (DB failures, etc.), NOT duplicate errors
 func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domain.CanonicalTag, string, bool, error) {
-	fmt.Printf("\n[RESOLVE_TAG] ========================================\n")
-	fmt.Printf("[RESOLVE_TAG] Input: '%s'\n", userInput)
+	slog.Info("Tag resolution started", "input", userInput)
 
 	// ============================================================
 	// Layer 1: Exact Match (Normalized Text Lookup)
 	// Cost: ~10ms, $0
 	// ============================================================
-	fmt.Printf("[RESOLVE_TAG] Layer 1: Exact Match Check...\n")
 	normalizedInput := domain.NormalizeText(userInput)
-	fmt.Printf("[RESOLVE_TAG]   Normalized: '%s'\n", normalizedInput)
+	slog.Debug("Layer 1: Checking exact match", "normalized_input", normalizedInput)
 
 	canonical, err := s.tagRepo.GetCanonicalByAlias(ctx, normalizedInput)
 	if err != nil {
@@ -75,12 +74,16 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 	}
 
 	if canonical != nil {
-		fmt.Printf("[RESOLVE_TAG] ✓ Layer 1 HIT: Found canonical '%s' (ID: %s)\n", canonical.DisplayName, canonical.ID)
-		fmt.Printf("[RESOLVE_TAG] ========================================\n\n")
+		slog.Info("Layer 1 hit: Found exact match",
+			"action", "return_existing_canonical",
+			"input", userInput,
+			"canonical_name", canonical.DisplayName,
+			"canonical_id", canonical.ID.String(),
+		)
 		return canonical, normalizedInput, false, nil
 	}
 
-	fmt.Printf("[RESOLVE_TAG] ✗ Layer 1 MISS: No exact match found\n")
+	slog.Debug("Layer 1 miss: No exact match found", "normalized_input", normalizedInput)
 
 	// ============================================================
 	// Layer 1.5: Translation Layer (Cross-Lingual Support)
@@ -88,21 +91,30 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 	// Purpose: Normalize non-English queries to English before vector search
 	// Example: "Tiền" -> "Money", "Học máy" -> "Machine Learning"
 	// ============================================================
-	fmt.Printf("[RESOLVE_TAG] Layer 1.5: Translation Layer...\n")
+	slog.Debug("Layer 1.5: Attempting translation to English", "input", userInput)
 
 	// Attempt translation to English
 	englishTerm, err := s.tagRepo.TranslateText(ctx, userInput)
 
 	// Process translation result only if successful and different from original
 	if err == nil && englishTerm != "" && domain.NormalizeText(englishTerm) != normalizedInput {
-		fmt.Printf("[RESOLVE_TAG]   Translated: '%s' -> '%s'\n", userInput, englishTerm)
+		slog.Debug("Layer 1.5: Translation successful",
+			"original", userInput,
+			"translated", englishTerm,
+		)
 
 		// Check if translated English term has existing canonical tag
 		normalizedEng := domain.NormalizeText(englishTerm)
 		canonicalEng, err := s.tagRepo.GetCanonicalByAlias(ctx, normalizedEng)
 
 		if err == nil && canonicalEng != nil {
-			fmt.Printf("[RESOLVE_TAG] ✓ Layer 1.5 HIT: Found canonical via translation '%s'\n", canonicalEng.DisplayName)
+			slog.Info("Layer 1.5 hit: Found canonical via translation",
+				"action", "return_via_translation",
+				"original_input", userInput,
+				"translated_term", englishTerm,
+				"canonical_name", canonicalEng.DisplayName,
+				"canonical_id", canonicalEng.ID.String(),
+			)
 
 			// Auto-create alias for original input to avoid future translation costs
 			// Use original input's embedding (not translated term) for future semantic search
@@ -111,40 +123,56 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 				embedding := pgvector.NewVector(embeddingSlice)
 				newAlias, aliasErr := domain.NewTagAlias(userInput, canonicalEng.ID, embedding, 1.0)
 				if aliasErr != nil {
-					fmt.Printf("[RESOLVE_TAG] ⚠ Warning: Failed to create alias: %v\n", aliasErr)
+					slog.Warn("Failed to create translation alias (validation)",
+						"original_input", userInput,
+						"error", aliasErr.Error(),
+					)
 				} else {
 					// Save alias to optimize future lookups (next time will hit Layer 1)
 					if createErr := s.tagRepo.CreateAlias(ctx, newAlias); createErr != nil {
 						// Log warning but don't fail request - still return found canonical
-						fmt.Printf("[RESOLVE_TAG] ⚠ Warning: Failed to save translation alias: %v\n", createErr)
+						slog.Warn("Failed to save translation alias (DB)",
+							"original_input", userInput,
+							"error", createErr.Error(),
+						)
 					} else {
-						fmt.Printf("[RESOLVE_TAG] ✓ Created translation alias '%s' -> '%s'\n", userInput, canonicalEng.DisplayName)
+						slog.Debug("Translation alias created",
+							"original", userInput,
+							"canonical", canonicalEng.DisplayName,
+						)
 					}
 				}
 			}
 
-			fmt.Printf("[RESOLVE_TAG] ========================================\n\n")
 			return canonicalEng, userInput, false, nil
 		}
 
-		fmt.Printf("[RESOLVE_TAG] ✗ Layer 1.5 MISS: Translated term '%s' not found in DB\n", englishTerm)
+		slog.Debug("Layer 1.5 miss: Translated term not found",
+			"original", userInput,
+			"translated", englishTerm,
+		)
 	} else if err != nil {
-		fmt.Printf("[RESOLVE_TAG] ⚠ Translation failed: %v (continuing to Layer 2)\n", err)
+		slog.Warn("Layer 1.5: Translation failed (continuing to Layer 2)",
+			"input", userInput,
+			"error", err.Error(),
+		)
 	} else {
-		fmt.Printf("[RESOLVE_TAG]   Skipped: Input already in English or translation returned same term\n")
+		slog.Debug("Layer 1.5 skipped: Input already in English or same translation")
 	}
 
 	// ============================================================
 	// Layer 2: Embedding Generation
 	// Cost: ~500ms, ~$0.0001 (OpenAI API call)
 	// ============================================================
-	fmt.Printf("[RESOLVE_TAG] Layer 2: Generating embedding...\n")
+	slog.Debug("Layer 2: Generating embedding", "input", userInput)
 
 	embeddingSlice, err := s.tagRepo.GetEmbeddingForText(ctx, userInput)
 	if err != nil {
 		// OpenAI unavailable → Create new canonical without semantic check
-		fmt.Printf("[RESOLVE_TAG] ⚠ Layer 2 FAILED: OpenAI unavailable (%v)\n", err)
-		fmt.Printf("[RESOLVE_TAG]   Fallback: Creating new canonical without semantic check\n")
+		slog.Warn("Layer 2 failed: OpenAI unavailable, creating canonical without embedding",
+			"input", userInput,
+			"error", err.Error(),
+		)
 
 		newCanonical, canonicalErr := domain.NewCanonicalTag(userInput)
 		if canonicalErr != nil {
@@ -160,19 +188,29 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 			return nil, "", false, fmt.Errorf("failed to create canonical (no OpenAI): %w", createErr)
 		}
 
-		fmt.Printf("[RESOLVE_TAG] ✓ Created new canonical '%s' (ID: %s)\n", newCanonical.DisplayName, newCanonical.ID)
-		fmt.Printf("[RESOLVE_TAG] ========================================\n\n")
+		slog.Info("Layer 2 fallback: Created new canonical (no embedding)",
+			"action", "create_new_canonical_no_embedding",
+			"input", userInput,
+			"canonical_name", newCanonical.DisplayName,
+			"canonical_id", newCanonical.ID.String(),
+		)
 		return newCanonical, userInput, true, nil
 	}
 
 	embedding := pgvector.NewVector(embeddingSlice)
-	fmt.Printf("[RESOLVE_TAG] ✓ Layer 2 SUCCESS: Embedding generated (%d dims)\n", len(embeddingSlice))
+	slog.Debug("Layer 2 success: Embedding generated",
+		"input", userInput,
+		"embedding_dims", len(embeddingSlice),
+	)
 
 	// ============================================================
 	// Layer 3: Semantic Search (Vector Similarity)
 	// Cost: ~50ms, $0 (uses cached embeddings in DB)
 	// ============================================================
-	fmt.Printf("[RESOLVE_TAG] Layer 3: Semantic search (threshold: %.2f)...\n", AUTO_MERGE_THRESHOLD)
+	slog.Debug("Layer 3: Performing semantic search",
+		"input", userInput,
+		"threshold", AUTO_MERGE_THRESHOLD,
+	)
 
 	closestCanonical, similarityScore, err := s.tagRepo.GetClosestCanonical(ctx, embedding, AUTO_MERGE_THRESHOLD)
 	if err != nil {
@@ -186,12 +224,13 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 	// Scenario A: Match Found (Score >= Threshold)
 	// Action: Create new alias → Link to existing canonical
 	if closestCanonical != nil {
-		fmt.Printf("[RESOLVE_TAG] ✓ Layer 3 HIT: Found similar canonical '%s' (score: %.2f%%)\n",
-			closestCanonical.DisplayName, similarityScore*100)
-
-		fmt.Printf("[RESOLVE_TAG] Layer 4: AUTO-MERGE (Scenario A)\n")
-		fmt.Printf("[RESOLVE_TAG]   Action: Create alias '%s' → Canonical '%s'\n",
-			userInput, closestCanonical.DisplayName)
+		slog.Info("Layer 3 hit: Found similar canonical",
+			"action", "auto_merge_to_existing",
+			"input", userInput,
+			"matched_canonical", closestCanonical.DisplayName,
+			"matched_id", closestCanonical.ID.String(),
+			"similarity_score", similarityScore,
+		)
 
 		// Create new alias pointing to existing canonical
 		newAlias, aliasErr := domain.NewTagAlias(userInput, closestCanonical.ID, embedding, similarityScore)
@@ -202,16 +241,20 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 			return nil, "", false, fmt.Errorf("failed to create alias: %w", err)
 		}
 
-		fmt.Printf("[RESOLVE_TAG] ✓ Alias created successfully\n")
-		fmt.Printf("[RESOLVE_TAG] ========================================\n\n")
+		slog.Debug("Auto-merge alias created",
+			"original_input", userInput,
+			"matched_canonical", closestCanonical.DisplayName,
+		)
 		return closestCanonical, userInput, false, nil
 	}
 
 	// Scenario B: No Match (Score < Threshold)
 	// Action: Create new canonical + initial alias
-	fmt.Printf("[RESOLVE_TAG] ✗ Layer 3 MISS: No similar canonical found\n")
-	fmt.Printf("[RESOLVE_TAG] Layer 4: CREATE NEW (Scenario B)\n")
-	fmt.Printf("[RESOLVE_TAG]   Action: Create new canonical '%s' + initial alias\n", userInput)
+	slog.Info("Layer 3 miss: No similar canonical found, creating new",
+		"action", "create_new_canonical",
+		"input", userInput,
+		"threshold", AUTO_MERGE_THRESHOLD,
+	)
 
 	newCanonical, canonicalErr := domain.NewCanonicalTag(userInput)
 	if canonicalErr != nil {
@@ -226,8 +269,13 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 		return nil, "", false, fmt.Errorf("failed to create canonical: %w", err)
 	}
 
-	fmt.Printf("[RESOLVE_TAG] ✓ New canonical created (ID: %s)\n", newCanonical.ID)
-	fmt.Printf("[RESOLVE_TAG] ========================================\n\n")
+	slog.Info("Tag resolution complete: New canonical created",
+		"action", "create_new_canonical_with_embedding",
+		"input", userInput,
+		"canonical_name", newCanonical.DisplayName,
+		"canonical_id", newCanonical.ID.String(),
+		"embedding_dims", len(embeddingSlice),
+	)
 	return newCanonical, userInput, true, nil
 }
 
@@ -438,8 +486,11 @@ func (s *tagServiceV2) toCanonicalTagResponse(canonical *domain.CanonicalTag) *d
 // 4. Update video relationships
 // 5. Delete source canonical tag
 func (s *tagServiceV2) MergeTags(ctx context.Context, req dto.MergeTagsRequest) (*dto.MergeTagsResponse, error) {
-	fmt.Printf("\n[MERGE_TAGS] ========================================\n")
-	fmt.Printf("[MERGE_TAGS] Source: %s, Target: %s\n", req.SourceID, req.TargetID)
+	slog.Info("Tag merge operation started",
+		"action", "merge_tags",
+		"source_id", req.SourceID,
+		"target_id", req.TargetID,
+	)
 
 	// Parse UUIDs
 	sourceUUID, err := uuid.Parse(req.SourceID)
@@ -468,17 +519,31 @@ func (s *tagServiceV2) MergeTags(ctx context.Context, req dto.MergeTagsRequest) 
 		return nil, fmt.Errorf("target tag not found: %w", err)
 	}
 
-	fmt.Printf("[MERGE_TAGS] Merging '%s' → '%s'\n", sourceTag.DisplayName, targetTag.DisplayName)
+	slog.Debug("Validated merge request",
+		"source_name", sourceTag.DisplayName,
+		"target_name", targetTag.DisplayName,
+	)
 
 	// Perform merge operation (atomic transaction)
 	mergedAliasCount, err := s.tagRepo.MergeTags(ctx, sourceUUID, targetUUID)
 	if err != nil {
-		fmt.Printf("[MERGE_TAGS] ✗ Failed: %v\n", err)
+		slog.Error("Tag merge operation failed",
+			"action", "merge_tags",
+			"source_id", req.SourceID,
+			"target_id", req.TargetID,
+			"error", err.Error(),
+		)
 		return nil, fmt.Errorf("failed to merge tags: %w", err)
 	}
 
-	fmt.Printf("[MERGE_TAGS] ✓ Success: Merged %d aliases\n", mergedAliasCount)
-	fmt.Printf("[MERGE_TAGS] ========================================\n\n")
+	slog.Info("Tag merge operation completed",
+		"action", "merge_tags",
+		"source_name", sourceTag.DisplayName,
+		"target_name", targetTag.DisplayName,
+		"merged_alias_count", mergedAliasCount,
+		"source_id", req.SourceID,
+		"target_id", req.TargetID,
+	)
 
 	// Build response
 	return &dto.MergeTagsResponse{
@@ -494,6 +559,11 @@ func (s *tagServiceV2) MergeTags(ctx context.Context, req dto.MergeTagsRequest) 
 
 // UpdateTagApproval updates the approval status of a canonical tag
 func (s *tagServiceV2) UpdateTagApproval(ctx context.Context, tagID string, isApproved bool) (*dto.TagResponse, error) {
+	slog.Debug("Tag approval update requested",
+		"tag_id", tagID,
+		"is_approved", isApproved,
+	)
+
 	tagUUID, err := uuid.Parse(tagID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid tag ID: %w", err)
@@ -508,8 +578,21 @@ func (s *tagServiceV2) UpdateTagApproval(ctx context.Context, tagID string, isAp
 	// Update approval status
 	tag.IsApproved = isApproved
 	if err := s.tagRepo.UpdateCanonicalTag(ctx, tag); err != nil {
+		slog.Error("Tag approval update failed",
+			"tag_id", tagID,
+			"tag_name", tag.DisplayName,
+			"is_approved", isApproved,
+			"error", err.Error(),
+		)
 		return nil, fmt.Errorf("failed to update tag approval: %w", err)
 	}
+
+	slog.Info("Tag approval updated",
+		"action", "update_tag_approval",
+		"tag_id", tagID,
+		"tag_name", tag.DisplayName,
+		"is_approved", isApproved,
+	)
 
 	return &dto.TagResponse{
 		ID:         tag.ID.String(),

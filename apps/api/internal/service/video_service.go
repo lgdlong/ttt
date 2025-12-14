@@ -5,6 +5,7 @@ import (
 	"api/internal/dto"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -99,7 +100,7 @@ func (s *videoService) GetVideoList(req dto.ListVideoRequest) (*dto.VideoListRes
 	reviewCounts, err := s.repo.GetReviewCountsForVideos(videoIDs)
 	if err != nil {
 		// Log error but don't fail - just set review counts to 0
-		fmt.Printf("Warning: Failed to get review counts: %v\n", err)
+		slog.Warn("Failed to get review counts", "error", err)
 		reviewCounts = make(map[uuid.UUID]int)
 	}
 
