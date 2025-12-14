@@ -14,8 +14,14 @@ import (
 
 // Sentinel errors for tag domain
 var (
-	ErrNotFound  = errors.New("tag not found")
-	ErrInvalidID = errors.New("invalid tag ID")
+	ErrNotFound             = errors.New("tag not found")
+	ErrInvalidID            = errors.New("invalid tag ID")
+	ErrCanonicalTagNotFound = errors.New("canonical tag not found")
+	ErrVideoNotFound        = errors.New("video not found")
+	ErrInvalidRequest       = errors.New("invalid request")
+	ErrSourceTagNotFound    = errors.New("source tag not found")
+	ErrTargetTagNotFound    = errors.New("target tag not found")
+	ErrSameSourceTarget     = errors.New("source and target tags must be different")
 )
 
 // CanonicalTag đại diện cho một chủ đề duy nhất (concept)

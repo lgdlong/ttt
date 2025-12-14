@@ -1,10 +1,18 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+)
+
+// Sentinel errors for user domain
+var (
+	ErrUserNotFound  = errors.New("user not found")
+	ErrInvalidUserID = errors.New("invalid user ID")
+	ErrUserExists    = errors.New("user already exists")
 )
 
 // UserRole represents the role of a user

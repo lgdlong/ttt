@@ -328,12 +328,12 @@ func (s *tagServiceV2) SearchCanonicalTags(ctx context.Context, query string, li
 func (s *tagServiceV2) AddCanonicalTagToVideo(ctx context.Context, videoID string, req dto.AddVideoTagRequest) (*dto.TagResponse, error) {
 	videoUUID, err := uuid.Parse(videoID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid video ID: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrInvalidRequest, err)
 	}
 
 	// Verify video exists
 	if _, err := s.videoRepo.GetVideoByID(videoUUID); err != nil {
-		return nil, fmt.Errorf("video not found: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrVideoNotFound, err)
 	}
 
 	var canonical *domain.CanonicalTag
@@ -342,11 +342,11 @@ func (s *tagServiceV2) AddCanonicalTagToVideo(ctx context.Context, videoID strin
 	if req.TagID != nil && *req.TagID != "" {
 		tagUUID, err := uuid.Parse(*req.TagID)
 		if err != nil {
-			return nil, fmt.Errorf("invalid tag_id format: %w", err)
+			return nil, fmt.Errorf("%w: %w", domain.ErrInvalidRequest, err)
 		}
 		canonical, err = s.tagRepo.GetCanonicalByID(ctx, tagUUID)
 		if err != nil {
-			return nil, fmt.Errorf("canonical tag not found: %w", err)
+			return nil, fmt.Errorf("%w: %w", domain.ErrCanonicalTagNotFound, err)
 		}
 	} else if req.TagName != nil && *req.TagName != "" {
 		// If tag_name provided, resolve using 4-layer algorithm
@@ -355,7 +355,7 @@ func (s *tagServiceV2) AddCanonicalTagToVideo(ctx context.Context, videoID strin
 			return nil, fmt.Errorf("failed to resolve tag: %w", err)
 		}
 	} else {
-		return nil, fmt.Errorf("either tag_id or tag_name must be provided")
+		return nil, fmt.Errorf("%w", domain.ErrInvalidRequest)
 	}
 
 	// Add canonical tag to video
@@ -438,47 +438,38 @@ func (s *tagServiceV2) toCanonicalTagResponse(canonical *domain.CanonicalTag) *d
 // 4. Update video relationships
 // 5. Delete source canonical tag
 func (s *tagServiceV2) MergeTags(ctx context.Context, req dto.MergeTagsRequest) (*dto.MergeTagsResponse, error) {
-	fmt.Printf("\n[MERGE_TAGS] ========================================\n")
-	fmt.Printf("[MERGE_TAGS] Source: %s, Target: %s\n", req.SourceID, req.TargetID)
-
 	// Parse UUIDs
 	sourceUUID, err := uuid.Parse(req.SourceID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid source tag ID: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrInvalidRequest, err)
 	}
 
 	targetUUID, err := uuid.Parse(req.TargetID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid target tag ID: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrInvalidRequest, err)
 	}
 
 	// Validate source != target
 	if sourceUUID == targetUUID {
-		return nil, fmt.Errorf("source and target tags must be different")
+		return nil, fmt.Errorf("%w", domain.ErrSameSourceTarget)
 	}
 
 	// Validate both tags exist
-	sourceTag, err := s.tagRepo.GetCanonicalByID(ctx, sourceUUID)
+	_, err = s.tagRepo.GetCanonicalByID(ctx, sourceUUID)
 	if err != nil {
-		return nil, fmt.Errorf("source tag not found: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrSourceTagNotFound, err)
 	}
 
 	targetTag, err := s.tagRepo.GetCanonicalByID(ctx, targetUUID)
 	if err != nil {
-		return nil, fmt.Errorf("target tag not found: %w", err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrTargetTagNotFound, err)
 	}
-
-	fmt.Printf("[MERGE_TAGS] Merging '%s' → '%s'\n", sourceTag.DisplayName, targetTag.DisplayName)
 
 	// Perform merge operation (atomic transaction)
 	mergedAliasCount, err := s.tagRepo.MergeTags(ctx, sourceUUID, targetUUID)
 	if err != nil {
-		fmt.Printf("[MERGE_TAGS] ✗ Failed: %v\n", err)
 		return nil, fmt.Errorf("failed to merge tags: %w", err)
 	}
-
-	fmt.Printf("[MERGE_TAGS] ✓ Success: Merged %d aliases\n", mergedAliasCount)
-	fmt.Printf("[MERGE_TAGS] ========================================\n\n")
 
 	// Build response
 	return &dto.MergeTagsResponse{

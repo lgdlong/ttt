@@ -5,11 +5,16 @@ import (
 	"api/internal/dto"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+// MaxTagSearchLimit is the maximum number of tags that can be returned in a single search
+const MaxTagSearchLimit = 100
 
 type TagHandler struct {
 	service   domain.TagService
@@ -59,28 +64,33 @@ func (h *TagHandler) AddCanonicalTagToVideo(c *gin.Context) {
 	tag, err := h.serviceV2.AddCanonicalTagToVideo(c.Request.Context(), videoID, req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		errMsg := err.Error()
-
 		var apiResponse dto.APIResponse
-		if errMsg == "video not found" {
+
+		// Use errors.Is for robust error matching
+		switch {
+		case errors.Is(err, domain.ErrVideoNotFound):
 			statusCode = http.StatusNotFound
 			apiResponse = dto.NewNotFoundResponse("video", videoID)
-		} else if errMsg == "canonical tag not found" {
+		case errors.Is(err, domain.ErrCanonicalTagNotFound):
 			statusCode = http.StatusNotFound
 			tagID := ""
 			if req.TagID != nil {
 				tagID = *req.TagID
 			}
 			apiResponse = dto.NewNotFoundResponse("canonical tag", tagID)
-		} else if len(errMsg) >= 6 && (errMsg[:6] == "either" || errMsg[:7] == "invalid") {
+		case errors.Is(err, domain.ErrInvalidRequest):
 			statusCode = http.StatusBadRequest
-			apiResponse = dto.NewValidationErrorResponse("request", errMsg)
-		} else {
-			apiResponse = dto.NewInternalErrorResponse(errMsg)
+			apiResponse = dto.NewValidationErrorResponse("request", err.Error())
+		default:
+			apiResponse = dto.NewInternalErrorResponse(err.Error())
 		}
 
-		fmt.Printf("[ERROR] AddCanonicalTagToVideo failed: %v (status: %d, %dms)\n",
-			err, statusCode, time.Since(startTime).Milliseconds())
+		slog.Error("AddCanonicalTagToVideo failed",
+			"video_id", videoID,
+			"status_code", statusCode,
+			"duration_ms", time.Since(startTime).Milliseconds(),
+			"error", err.Error(),
+		)
 		c.JSON(statusCode, apiResponse)
 		return
 	}
@@ -182,6 +192,15 @@ func (h *TagHandler) ListCanonicalTags(c *gin.Context) {
 		apiResponse := dto.NewValidationErrorResponse("query", err.Error())
 		c.JSON(http.StatusBadRequest, apiResponse)
 		return
+	}
+
+	// Validate and normalize limit parameter
+	if req.Limit < 1 {
+		req.Limit = 20 // default
+	}
+	if req.Limit > MaxTagSearchLimit {
+		slog.Debug("TagList limit capped", "requested", req.Limit, "max", MaxTagSearchLimit)
+		req.Limit = MaxTagSearchLimit
 	}
 
 	response, err := h.serviceV2.ListCanonicalTags(c.Request.Context(), req)
@@ -333,9 +352,26 @@ func (h *TagHandler) SearchCanonicalTags(c *gin.Context) {
 		return
 	}
 
-	limit := 10
+	// Parse limit with explicit error handling and bounds checking
+	limit := 10 // default
 	if limitStr := c.Query("limit"); limitStr != "" {
-		fmt.Sscanf(limitStr, "%d", &limit)
+		parsedLimit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			apiResponse := dto.NewValidationErrorResponse("limit", "limit must be a valid integer")
+			c.JSON(http.StatusBadRequest, apiResponse)
+			return
+		}
+		if parsedLimit < 1 {
+			apiResponse := dto.NewValidationErrorResponse("limit", "limit must be greater than 0")
+			c.JSON(http.StatusBadRequest, apiResponse)
+			return
+		}
+		if parsedLimit > MaxTagSearchLimit {
+			limit = MaxTagSearchLimit
+			slog.Debug("Search limit capped", "requested", parsedLimit, "max", MaxTagSearchLimit)
+		} else {
+			limit = parsedLimit
+		}
 	}
 
 	approvedOnly := c.Query("approved_only") == "true"
@@ -385,26 +421,30 @@ func (h *TagHandler) MergeTags(c *gin.Context) {
 	result, err := h.serviceV2.MergeTags(c.Request.Context(), req)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		errMsg := err.Error()
-
 		var apiResponse dto.APIResponse
 
-		// Handle specific error cases
-		if errMsg == "source tag not found" {
+		// Use errors.Is for robust error matching
+		switch {
+		case errors.Is(err, domain.ErrSourceTagNotFound):
 			statusCode = http.StatusNotFound
 			apiResponse = dto.NewNotFoundResponse("source tag", req.SourceID)
-		} else if errMsg == "target tag not found" {
+		case errors.Is(err, domain.ErrTargetTagNotFound):
 			statusCode = http.StatusNotFound
 			apiResponse = dto.NewNotFoundResponse("target tag", req.TargetID)
-		} else if errMsg == "source and target tags must be different" {
+		case errors.Is(err, domain.ErrSameSourceTarget):
 			statusCode = http.StatusBadRequest
 			apiResponse = dto.NewValidationErrorResponse("source_id", "Source and target tags must be different")
-		} else {
-			apiResponse = dto.NewInternalErrorResponse("Failed to merge tags: " + errMsg)
+		default:
+			apiResponse = dto.NewInternalErrorResponse("Failed to merge tags: " + err.Error())
 		}
 
-		fmt.Printf("[MERGE_TAGS] ✗ Failed: %v (status: %d, %dms)\n",
-			err, statusCode, time.Since(startTime).Milliseconds())
+		slog.Error("MergeTags failed",
+			"source_id", req.SourceID,
+			"target_id", req.TargetID,
+			"status_code", statusCode,
+			"duration_ms", time.Since(startTime).Milliseconds(),
+			"error", err.Error(),
+		)
 		c.JSON(statusCode, apiResponse)
 		return
 	}

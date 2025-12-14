@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type userService struct {
@@ -85,7 +86,7 @@ func (s *userService) UpdateUser(id string, req dto.UpdateUserRequest) (*dto.Use
 		existingUser, err := s.repo.GetUserByUsername(*req.Username)
 		if err == nil && existingUser.ID != userID {
 			return nil, errors.New("username already exists")
-		} else if err != nil && err != gorm.ErrRecordNotFound {
+		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("failed to check username uniqueness: %w", err)
 		}
 		updates["username"] = *req.Username
@@ -96,7 +97,7 @@ func (s *userService) UpdateUser(id string, req dto.UpdateUserRequest) (*dto.Use
 		existingUser, err := s.repo.GetUserByEmail(*req.Email)
 		if err == nil && existingUser.ID != userID {
 			return nil, errors.New("email already exists")
-		} else if err != nil && err != gorm.ErrRecordNotFound {
+		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("failed to check email uniqueness: %w", err)
 		}
 		updates["email"] = *req.Email
