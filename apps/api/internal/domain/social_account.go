@@ -11,7 +11,7 @@ type SocialAccount struct {
 
 	// 1. Khóa ngoại trỏ về bảng Users (Chủ sở hữu)
 	UserID uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
-	User   User      `gorm:"foreignKey:UserID" json:"user"`
+	User   User      `gorm:"foreignKey:UserID" json:"-"`
 
 	// 2. Tên nhà cung cấp (google, github, facebook, apple...)
 	Provider string `gorm:"type:varchar(50);not null;index:idx_provider_social_id" json:"provider"`

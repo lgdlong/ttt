@@ -109,14 +109,17 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 			embeddingSlice, embErr := s.tagRepo.GetEmbeddingForText(ctx, userInput)
 			if embErr == nil {
 				embedding := pgvector.NewVector(embeddingSlice)
-				newAlias := domain.NewTagAlias(userInput, canonicalEng.ID, embedding, 1.0)
-
-				// Save alias to optimize future lookups (next time will hit Layer 1)
-				if createErr := s.tagRepo.CreateAlias(ctx, newAlias); createErr != nil {
-					// Log warning but don't fail request - still return found canonical
-					fmt.Printf("[RESOLVE_TAG] ⚠ Warning: Failed to save translation alias: %v\n", createErr)
+				newAlias, aliasErr := domain.NewTagAlias(userInput, canonicalEng.ID, embedding, 1.0)
+				if aliasErr != nil {
+					fmt.Printf("[RESOLVE_TAG] ⚠ Warning: Failed to create alias: %v\n", aliasErr)
 				} else {
-					fmt.Printf("[RESOLVE_TAG] ✓ Created translation alias '%s' -> '%s'\n", userInput, canonicalEng.DisplayName)
+					// Save alias to optimize future lookups (next time will hit Layer 1)
+					if createErr := s.tagRepo.CreateAlias(ctx, newAlias); createErr != nil {
+						// Log warning but don't fail request - still return found canonical
+						fmt.Printf("[RESOLVE_TAG] ⚠ Warning: Failed to save translation alias: %v\n", createErr)
+					} else {
+						fmt.Printf("[RESOLVE_TAG] ✓ Created translation alias '%s' -> '%s'\n", userInput, canonicalEng.DisplayName)
+					}
 				}
 			}
 
@@ -143,8 +146,15 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 		fmt.Printf("[RESOLVE_TAG] ⚠ Layer 2 FAILED: OpenAI unavailable (%v)\n", err)
 		fmt.Printf("[RESOLVE_TAG]   Fallback: Creating new canonical without semantic check\n")
 
-		newCanonical := domain.NewCanonicalTag(userInput)
-		newAlias := domain.NewTagAlias(userInput, uuid.Nil, pgvector.Vector{}, 1.0)
+		newCanonical, canonicalErr := domain.NewCanonicalTag(userInput)
+		if canonicalErr != nil {
+			return nil, "", false, fmt.Errorf("failed to create canonical (invalid input): %w", canonicalErr)
+		}
+		// Note: Using empty embedding since OpenAI failed. This will be backfilled later.
+		newAlias, aliasErr := domain.NewInitialTagAlias(userInput, pgvector.Vector{}, 1.0)
+		if aliasErr != nil {
+			return nil, "", false, fmt.Errorf("failed to create alias (validation failed): %w", aliasErr)
+		}
 
 		if createErr := s.tagRepo.CreateCanonicalTag(ctx, newCanonical, newAlias); createErr != nil {
 			return nil, "", false, fmt.Errorf("failed to create canonical (no OpenAI): %w", createErr)
@@ -184,7 +194,10 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 			userInput, closestCanonical.DisplayName)
 
 		// Create new alias pointing to existing canonical
-		newAlias := domain.NewTagAlias(userInput, closestCanonical.ID, embedding, similarityScore)
+		newAlias, aliasErr := domain.NewTagAlias(userInput, closestCanonical.ID, embedding, similarityScore)
+		if aliasErr != nil {
+			return nil, "", false, fmt.Errorf("failed to create alias (validation failed): %w", aliasErr)
+		}
 		if err := s.tagRepo.CreateAlias(ctx, newAlias); err != nil {
 			return nil, "", false, fmt.Errorf("failed to create alias: %w", err)
 		}
@@ -200,8 +213,14 @@ func (s *tagServiceV2) ResolveTag(ctx context.Context, userInput string) (*domai
 	fmt.Printf("[RESOLVE_TAG] Layer 4: CREATE NEW (Scenario B)\n")
 	fmt.Printf("[RESOLVE_TAG]   Action: Create new canonical '%s' + initial alias\n", userInput)
 
-	newCanonical := domain.NewCanonicalTag(userInput)
-	newAlias := domain.NewTagAlias(userInput, uuid.Nil, embedding, 1.0) // Score=1.0 for canonical
+	newCanonical, canonicalErr := domain.NewCanonicalTag(userInput)
+	if canonicalErr != nil {
+		return nil, "", false, fmt.Errorf("failed to create canonical (invalid input): %w", canonicalErr)
+	}
+	newAlias, aliasErr := domain.NewInitialTagAlias(userInput, embedding, 1.0) // Score=1.0 for canonical
+	if aliasErr != nil {
+		return nil, "", false, fmt.Errorf("failed to create alias (validation failed): %w", aliasErr)
+	}
 
 	if err := s.tagRepo.CreateCanonicalTag(ctx, newCanonical, newAlias); err != nil {
 		return nil, "", false, fmt.Errorf("failed to create canonical: %w", err)
@@ -321,7 +340,11 @@ func (s *tagServiceV2) AddCanonicalTagToVideo(ctx context.Context, videoID strin
 
 	// If tag_id provided, get existing canonical
 	if req.TagID != nil && *req.TagID != "" {
-		canonical, err = s.tagRepo.GetCanonicalByID(ctx, uuid.MustParse(*req.TagID))
+		tagUUID, err := uuid.Parse(*req.TagID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tag_id format: %w", err)
+		}
+		canonical, err = s.tagRepo.GetCanonicalByID(ctx, tagUUID)
 		if err != nil {
 			return nil, fmt.Errorf("canonical tag not found: %w", err)
 		}

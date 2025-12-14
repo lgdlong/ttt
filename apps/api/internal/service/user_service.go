@@ -38,19 +38,13 @@ func (s *userService) CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, 
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Set default role if not provided
-	role := req.Role
-	if role == "" {
-		role = string(domain.UserRoleUser)
-	}
-
-	// Create user
+	// Create user with default 'user' role (role escalation must be done via admin endpoints)
 	user := &domain.User{
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		Role:         role,
-		IsActive:     true, // Default: active
+		Role:         string(domain.UserRoleUser), // Always default to 'user' role
+		IsActive:     true,                        // Default: active
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
@@ -109,13 +103,7 @@ func (s *userService) UpdateUser(id string, req dto.UpdateUserRequest) (*dto.Use
 		updates["password_hash"] = string(hashedPassword)
 	}
 
-	if req.Role != nil {
-		updates["role"] = *req.Role
-	}
-
-	if req.IsActive != nil {
-		updates["is_active"] = *req.IsActive
-	}
+	// Note: Role and IsActive updates removed - must be handled via admin-only endpoints
 
 	if len(updates) == 0 {
 		return nil, errors.New("no fields to update")
