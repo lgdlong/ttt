@@ -7,6 +7,7 @@ import { ProtectedRoute, AdminRoute, ModeratorRoute, GuestRoute } from '~/compon
 // Lazy load pages for better initial bundle size
 const Homepage = lazy(() => import('~/pages/Homepage'))
 const VideoDetailPage = lazy(() => import('~/pages/VideoDetailPage'))
+const TagPage = lazy(() => import('~/pages/TagPage'))
 const LoginPage = lazy(() => import('~/pages/LoginPage'))
 const RegisterPage = lazy(() => import('~/pages/RegisterPage'))
 
@@ -103,6 +104,14 @@ const AppRouter: React.FC = () => {
           element={
             <Suspense fallback={<PageLoader />}>
               <VideoDetailPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tag/:tagId"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <TagPage />
             </Suspense>
           }
         />

@@ -15,6 +15,7 @@ export interface ListVideoRequest {
   sort?: VideoSort
   tag_id?: string // UUID
   has_transcript?: boolean // Filter by transcript: true = only with, false = only without, undefined = all
+  q?: string // Search query - searches in Title OR Tag Name
 }
 
 // VideoListRequest for mod dashboard
