@@ -60,15 +60,15 @@ export const AddSegmentDialog: React.FC<AddSegmentDialogProps> = ({ open, onClos
     setValidationError('')
 
     // Validation
-    const start = parseInt(startTime, 10)
-    const end = parseInt(endTime, 10)
+    const start = Number.parseInt(startTime, 10)
+    const end = Number.parseInt(endTime, 10)
 
-    if (isNaN(start) || start < 0) {
+    if (Number.isNaN(start) || start < 0) {
       setValidationError('Start time phải là số >= 0')
       return
     }
 
-    if (isNaN(end) || end <= start) {
+    if (Number.isNaN(end) || end <= start) {
       setValidationError('End time phải lớn hơn start time')
       return
     }
