@@ -24,3 +24,8 @@ type Session struct {
 
 	CreatedAt time.Time `json:"created_at"`
 }
+
+// TableName overrides the default table name
+func (Session) TableName() string {
+	return "sessions"
+}
