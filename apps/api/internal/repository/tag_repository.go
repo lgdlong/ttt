@@ -313,19 +313,14 @@ func (r *tagRepository) SearchCanonicalTags(ctx context.Context, query string, l
 // AddCanonicalTagToVideo links a canonical tag to a video
 func (r *tagRepository) AddCanonicalTagToVideo(ctx context.Context, videoID, canonicalTagID uuid.UUID) error {
 	// Check if relationship already exists
-	var count int64
-	r.db.WithContext(ctx).
-		Table("video_canonical_tags").
-		Where("video_id = ? AND canonical_tag_id = ?", videoID, canonicalTagID).
-		Count(&count)
-
-	if count > 0 {
-		return nil // Already exists
-	}
-
-	// Insert relationship
+	// Insert relationship, ignoring if it already exists to prevent duplicates.
+	// This is an atomic operation and avoids race conditions.
 	return r.db.WithContext(ctx).
-		Exec("INSERT INTO video_canonical_tags (video_id, canonical_tag_id) VALUES (?, ?)", videoID, canonicalTagID).
+		Exec(`
+			INSERT INTO video_canonical_tags (video_id, canonical_tag_id) 
+			VALUES (?, ?)
+			ON CONFLICT (video_id, canonical_tag_id) DO NOTHING
+		`, videoID, canonicalTagID).
 		Error
 }
 
