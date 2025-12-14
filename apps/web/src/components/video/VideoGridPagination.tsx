@@ -5,6 +5,7 @@ import type { VideoSort } from '~/types/video'
 
 interface VideoGridPaginationProps {
   page: number
+  limit?: number // Added limit prop for consistency
   onPageChange: (page: number) => void
   selectedTagId: string | null
   sort: VideoSort
@@ -12,13 +13,14 @@ interface VideoGridPaginationProps {
 
 const VideoGridPagination: React.FC<VideoGridPaginationProps> = ({
   page,
+  limit = 12, // Default to 12 to match VideoGrid
   onPageChange,
   selectedTagId,
   sort,
 }) => {
   const { data } = useVideos({
     page,
-    limit: 20,
+    limit,
     sort,
     tag_id: selectedTagId ?? undefined,
     has_transcript: true,

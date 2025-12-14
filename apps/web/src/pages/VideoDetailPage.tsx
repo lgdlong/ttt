@@ -1,10 +1,10 @@
 import React, { Suspense, useRef, useState, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link as RouterLink } from 'react-router-dom'
 import {
   Box,
   Container,
   Typography,
-  Chip,
+  Link,
   Stack,
   Button,
   Skeleton,
@@ -174,7 +174,7 @@ const VideoContent: React.FC = () => {
   return (
     <Grid container spacing={4}>
       {/* Left Column: Video Player & Info */}
-      <Grid size={{ xs: 12, md: 8 }}>
+      <Grid size={{ xs: 12, md: 7 }}>
         {/* Video Player */}
         <Box
           sx={{
@@ -230,24 +230,46 @@ const VideoContent: React.FC = () => {
 
         {/* Tags */}
         {video.tags && video.tags.length > 0 && (
-          <Stack direction="row" spacing={1} mb={3} flexWrap="wrap" useFlexGap>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            mb={3}
+            flexWrap="wrap"
+            useFlexGap
+            alignItems="center"
+          >
+            <Typography variant="body2" color="text.secondary">
+              Tags:
+            </Typography>
             {video.tags.map((tag) => (
-              <Chip
-                key={tag.id}
-                label={tag.name}
-                size="small"
-                onClick={() => {
-                  // TODO: Navigate to tag filter
-                  console.log('Navigate to tag:', tag.name)
-                }}
-              />
+              <React.Fragment key={tag.id}>
+                <Link
+                  component={RouterLink}
+                  to={`/tag/${tag.id}`}
+                  underline="always"
+                  color="primary"
+                  sx={{
+                    fontWeight: 500,
+                    '&:hover': {
+                      color: 'primary.dark',
+                    },
+                  }}
+                >
+                  {tag.name}
+                </Link>
+                {/* {index < video.tags.length - 1 && (
+                  <Typography component="span" color="text.secondary" sx={{ mx: -0.5 }}>
+                    •
+                  </Typography>
+                )} */}
+              </React.Fragment>
             ))}
           </Stack>
         )}
       </Grid>
 
       {/* Right Column: Transcript */}
-      <Grid size={{ xs: 12, md: 4 }}>
+      <Grid size={{ xs: 12, md: 5 }}>
         <Box
           sx={{
             height: { md: 'calc(100vh - 100px)' },

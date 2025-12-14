@@ -3,20 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Typography,
-  IconButton,
   Avatar,
-  InputBase,
   Menu,
   MenuItem,
   Divider,
   ListItemIcon,
   ListItemText,
 } from '@mui/material'
-import SearchIcon from '@mui/icons-material/Search'
 import LogoutIcon from '@mui/icons-material/Logout'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import PersonIcon from '@mui/icons-material/Person'
 import { useAuth } from '~/providers/AuthProvider'
+import { GlobalSearchBar } from '~/components/search'
 
 /**
  * Header Component
@@ -26,17 +24,8 @@ import { useAuth } from '~/providers/AuthProvider'
 const Header: React.FC = () => {
   const navigate = useNavigate()
   const { user, isAuthenticated, logout } = useAuth()
-  const [searchQuery, setSearchQuery] = React.useState('')
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
   const menuOpen = Boolean(anchorEl)
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      // TODO: Implement search navigation when API is ready
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
-    }
-  }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -90,36 +79,9 @@ const Header: React.FC = () => {
         TTT
       </Typography>
 
-      {/* Search Bar */}
-      <Box
-        component="form"
-        onSubmit={handleSearch}
-        sx={{
-          flex: 1,
-          maxWidth: 600,
-          mx: 'auto',
-          bgcolor: '#F1F5F9',
-          borderRadius: 99,
-          display: 'flex',
-          alignItems: 'center',
-          px: 2,
-          py: 0.5,
-        }}
-      >
-        <InputBase
-          placeholder="Tìm kiếm..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{
-            flex: 1,
-            '& input': {
-              padding: '8px',
-            },
-          }}
-        />
-        <IconButton type="submit" size="small">
-          <SearchIcon />
-        </IconButton>
+      {/* Global Search Bar */}
+      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+        <GlobalSearchBar />
       </Box>
 
       {/* User Avatar */}
