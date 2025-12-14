@@ -53,3 +53,5 @@ vendor/
 # Misc
 *.bak
 *.tmp
+
+tsv_files/

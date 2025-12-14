@@ -9,8 +9,34 @@ import (
 	"syscall"
 	"time"
 
+	_ "api/docs" // Import generated docs
 	"api/internal/server"
 )
+
+// @title TTT Video API
+// @version 1.0
+// @description API for managing YouTube videos, transcripts, and semantic search
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http https
+
+// @tag.name Videos
+// @tag.description Video management endpoints
+
+// @tag.name Search
+// @tag.description Search endpoints for transcripts and tags
+
+// @tag.name System
+// @tag.description System health and status endpoints
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	// Create context that listens for the interrupt signal from the OS.
