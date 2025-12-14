@@ -32,7 +32,7 @@ type User struct {
 	PasswordHash string `gorm:"type:varchar(255);not null" json:"-"`
 	FullName     string `gorm:"type:varchar(100);default:'';not null"`
 
-	Role     string `gorm:"type:varchar(20);default:'user';not null"` // e.g., 'user', 'admin', 'mod'
+	Role     UserRole `gorm:"type:varchar(20);default:'user';not null"` // e.g., 'user', 'admin', 'mod'
 	IsActive bool   `gorm:"default:true" json:"is_active"`
 
 	CreatedAt time.Time      `json:"created_at"`
