@@ -1,9 +1,13 @@
 import React, { Suspense, useState } from 'react'
-import { Box, Container, Skeleton, Grid, Stack } from '@mui/material'
+import { Box, Container, Skeleton, Grid, Stack, useMediaQuery, useTheme } from '@mui/material'
 import { FilterBar, VideoCard } from '~/components/video'
 import VideoGridPagination from '~/components/video/VideoGridPagination'
+import { TagSidebar } from '~/components/sidebar'
 import { useVideos, useTags } from '~/hooks'
 import type { VideoSort } from '~/types/video'
+
+/** Sidebar width constant */
+const SIDEBAR_WIDTH = 260
 
 /**
  * VideoGridSkeleton - Loading state for video grid
@@ -82,31 +86,61 @@ const Homepage: React.FC = () => {
 
   const selectedCategoryName = categories.find((c) => c.id === selectedTagId)?.name || 'Tất cả'
 
+  // Check if we should show sidebar (desktop only)
+  const theme = useTheme()
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
+
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: 'calc(100vh - 64px)' }}>
-      <Container maxWidth="xl" sx={{ py: 3 }}>
-        {/* Filter Bar */}
-        <FilterBar
-          categories={categories.map((c) => c.name)}
-          selectedCategory={selectedCategoryName}
-          onCategoryChange={handleCategoryChange}
-        />
+    <Box
+      sx={{
+        bgcolor: 'background.default',
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex',
+      }}
+    >
+      {/* Sidebar - Desktop only */}
+      {isDesktop && (
+        <Box
+          component="aside"
+          sx={{
+            width: SIDEBAR_WIDTH,
+            flexShrink: 0,
+            position: 'sticky',
+            top: 64, // Height of navbar
+            height: 'calc(100vh - 64px)',
+            overflow: 'hidden',
+          }}
+        >
+          <TagSidebar />
+        </Box>
+      )}
 
-        {/* Video Grid with Suspense */}
-        <Suspense fallback={<VideoGridSkeleton />}>
-          <VideoGrid selectedTagId={selectedTagId} sort={sort} page={page} />
-        </Suspense>
-
-        {/* Pagination */}
-        <Stack alignItems="center" sx={{ mt: 4 }}>
-          <VideoGridPagination
-            page={page}
-            onPageChange={handlePageChange}
-            selectedTagId={selectedTagId}
-            sort={sort}
+      {/* Main Content */}
+      <Box component="main" sx={{ flex: 1, minWidth: 0 }}>
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+          {/* Filter Bar */}
+          <FilterBar
+            categories={categories.map((c) => c.name)}
+            selectedCategory={selectedCategoryName}
+            onCategoryChange={handleCategoryChange}
           />
-        </Stack>
-      </Container>
+
+          {/* Video Grid with Suspense */}
+          <Suspense fallback={<VideoGridSkeleton />}>
+            <VideoGrid selectedTagId={selectedTagId} sort={sort} page={page} />
+          </Suspense>
+
+          {/* Pagination */}
+          <Stack alignItems="center" sx={{ mt: 4 }}>
+            <VideoGridPagination
+              page={page}
+              onPageChange={handlePageChange}
+              selectedTagId={selectedTagId}
+              sort={sort}
+            />
+          </Stack>
+        </Container>
+      </Box>
     </Box>
   )
 }
