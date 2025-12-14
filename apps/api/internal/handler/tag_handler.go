@@ -3,6 +3,7 @@ package handler
 import (
 	"api/internal/domain"
 	"api/internal/dto"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -457,13 +458,13 @@ func (h *TagHandler) UpdateTagApproval(c *gin.Context) {
 
 	tag, err := h.serviceV2.UpdateTagApproval(c.Request.Context(), id, req.IsApproved)
 	if err != nil {
-		errMsg := err.Error()
-		if errMsg == "tag not found" || errMsg == "invalid tag ID" {
+		// Use sentinel errors for robust error handling
+		if errors.Is(err, domain.ErrNotFound) || errors.Is(err, domain.ErrInvalidID) {
 			apiResponse := dto.NewNotFoundResponse("tag", id)
 			c.JSON(http.StatusNotFound, apiResponse)
 			return
 		}
-		apiResponse := dto.NewInternalErrorResponse("Failed to update tag approval: " + errMsg)
+		apiResponse := dto.NewInternalErrorResponse("Failed to update tag approval: " + err.Error())
 		c.JSON(http.StatusInternalServerError, apiResponse)
 		return
 	}

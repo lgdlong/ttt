@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -9,6 +10,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
 	"github.com/pgvector/pgvector-go"
+)
+
+// Sentinel errors for tag domain
+var (
+	ErrNotFound  = errors.New("tag not found")
+	ErrInvalidID = errors.New("invalid tag ID")
 )
 
 // CanonicalTag đại diện cho một chủ đề duy nhất (concept)
