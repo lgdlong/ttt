@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from 'react'
 import { useParams, Link as RouterLink } from 'react-router-dom'
-import { Box, Container, Skeleton, Grid, Stack, Typography, Breadcrumbs, Link } from '@mui/material'
+import { Box, Container, Skeleton, Grid, Stack, Typography, Breadcrumbs, Link, Chip } from '@mui/material'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import { VideoCard } from '~/components/video'
 import VideoGridPagination from '~/components/video/VideoGridPagination'
@@ -89,9 +89,34 @@ const TagPageContent: React.FC<TagPageContentProps> = ({ tagId, page, sort, onPa
       </Breadcrumbs>
 
       {/* Page Title */}
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 4 }}>
+      <Typography variant="h4" fontWeight={700} sx={{ mb: 2 }}>
         Videos về "{tagName}"
       </Typography>
+
+      {/* Aliases - Read-only badges */}
+      {tag?.aliases && tag.aliases.length > 0 && (
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4, flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+            Tên khác:
+          </Typography>
+          {tag.aliases.map((alias, index) => (
+            <Chip
+              key={index}
+              label={alias}
+              size="small"
+              sx={{
+                bgcolor: 'grey.200',
+                color: 'text.primary',
+                fontWeight: 400,
+                cursor: 'default',
+                '&:hover': {
+                  bgcolor: 'grey.200',
+                },
+              }}
+            />
+          ))}
+        </Stack>
+      )}
 
       {/* Video Grid */}
       <VideoGrid tagId={tagId} sort={sort} page={page} />

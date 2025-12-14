@@ -3,6 +3,7 @@ export interface TagResponse {
   id: string // UUID
   name: string
   is_approved: boolean
+  aliases?: string[] // List of alias names for display (e.g., ["Thực dụng", "Practical"])
 }
 
 // V1 Legacy - kept for backward compatibility (DEPRECATED)

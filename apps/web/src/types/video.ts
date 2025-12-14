@@ -53,6 +53,7 @@ export interface VideoCardResponse {
 export interface TagResponse {
   id: string
   name: string
+  aliases?: string[] // List of alias names for display
 }
 
 export interface VideoDetailResponse extends VideoCardResponse {
