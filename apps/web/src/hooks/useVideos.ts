@@ -12,7 +12,6 @@ export const videoKeys = {
   details: () => [...videoKeys.all, 'detail'] as const,
   detail: (id: string) => [...videoKeys.details(), id] as const,
   transcript: (videoId: string) => [...videoKeys.all, 'transcript', videoId] as const,
-  tags: () => [...videoKeys.all, 'tags'] as const,
 }
 
 export const searchKeys = {
@@ -61,27 +60,5 @@ export function useTranscriptSearch(params: TranscriptSearchRequest) {
     queryKey: searchKeys.transcripts(params),
     queryFn: () => videoApi.searchTranscripts(params),
     enabled: params.q.length >= 2, // Only search when query is at least 2 chars
-  })
-}
-
-/**
- * Hook to search tags
- */
-export function useTagSearch(params: TagSearchRequest) {
-  return useQuery({
-    queryKey: searchKeys.tags(params),
-    queryFn: () => videoApi.searchTags(params),
-    enabled: params.q.length >= 2,
-  })
-}
-
-/**
- * Hook to fetch all tags
- */
-export function useTags() {
-  return useQuery({
-    queryKey: videoKeys.tags(),
-    queryFn: () => videoApi.fetchAllTags(),
-    staleTime: Infinity, // Tags rarely change
   })
 }
