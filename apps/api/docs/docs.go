@@ -1167,6 +1167,13 @@ const docTemplate = `{
                         "description": "Max results",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Only return approved tags",
+                        "name": "approved_only",
+                        "in": "query"
                     }
                 ],
                 "responses": {

@@ -1452,6 +1452,11 @@ paths:
         in: query
         name: limit
         type: integer
+      - default: false
+        description: Only return approved tags
+        in: query
+        name: approved_only
+        type: boolean
       produces:
       - application/json
       responses:
