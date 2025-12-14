@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -76,8 +77,11 @@ func GenerateSlug(displayName string) string {
 
 	// Guard against empty slug generation (e.g., non-ASCII with no fallback)
 	if generated == "" {
-		// Fallback: use normalized lowercase version
-		generated = strings.ToLower(strings.ReplaceAll(trimmed, " ", "-"))
+		// Fallback: aggressively sanitize to ensure a valid slug
+		re := regexp.MustCompile("[^a-z0-9]+")
+		sanitized := strings.ToLower(trimmed)
+		generated = re.ReplaceAllString(sanitized, "-")
+		generated = strings.Trim(generated, "-")
 	}
 
 	// Truncate to fit DB constraint (varchar(100)) with room for collision suffix
