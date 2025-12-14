@@ -5,22 +5,21 @@ import "time"
 // ============ User CRUD DTOs ============
 
 // CreateUserRequest - Request to create a new user
+// Note: Role assignment is handled server-side. Use separate admin endpoints for role management.
 type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
 	Email    string `json:"email" binding:"required,email,max=100"`
 	Password string `json:"password" binding:"required,min=6"`
 	FullName string `json:"full_name" binding:"omitempty,max=100"`
-	Role     string `json:"role" binding:"omitempty,oneof=user admin mod"`
 }
 
 // UpdateUserRequest - Request to update user information
+// Note: Role and IsActive management require admin privileges. Use separate admin endpoints.
 type UpdateUserRequest struct {
 	Username *string `json:"username" binding:"omitempty,min=3,max=50"`
 	Email    *string `json:"email" binding:"omitempty,email,max=100"`
 	Password *string `json:"password" binding:"omitempty,min=6"`
 	FullName *string `json:"full_name" binding:"omitempty,max=100"`
-	Role     *string `json:"role" binding:"omitempty,oneof=user admin mod"`
-	IsActive *bool   `json:"is_active" binding:"omitempty"`
 }
 
 // UserResponse - User data for API responses (without password)
