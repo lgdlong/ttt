@@ -201,19 +201,22 @@ func (r *tagRepository) UpdateCanonicalTag(ctx context.Context, canonical *domai
 	return r.db.WithContext(ctx).Save(canonical).Error
 }
 
-// ListCanonicalTags returns paginated list of canonical tags
+// ListCanonicalTags returns paginated list of approved canonical tags only
 func (r *tagRepository) ListCanonicalTags(ctx context.Context, page, limit int) ([]domain.CanonicalTag, int64, error) {
 	var canonicals []domain.CanonicalTag
 	var total int64
 
-	// Count total
-	if err := r.db.WithContext(ctx).Model(&domain.CanonicalTag{}).Count(&total).Error; err != nil {
+	// Count total approved tags only
+	if err := r.db.WithContext(ctx).Model(&domain.CanonicalTag{}).
+		Where("is_approved = ?", true).
+		Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Query with pagination
+	// Query with pagination - approved tags only
 	offset := (page - 1) * limit
 	if err := r.db.WithContext(ctx).
+		Where("is_approved = ?", true).
 		Order("display_name ASC").
 		Offset(offset).
 		Limit(limit).
