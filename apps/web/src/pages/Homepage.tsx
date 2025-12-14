@@ -1,9 +1,18 @@
-import React, { Suspense, useState } from 'react'
-import { Box, Container, Skeleton, Grid, Stack, useMediaQuery, useTheme } from '@mui/material'
+import React, { useState } from 'react'
+import {
+  Box,
+  Container,
+  Skeleton,
+  Grid,
+  Stack,
+  useMediaQuery,
+  useTheme,
+  CircularProgress,
+} from '@mui/material'
 import { FilterBar, VideoCard } from '~/components/video'
 import VideoGridPagination from '~/components/video/VideoGridPagination'
 import { TagSidebar } from '~/components/sidebar'
-import { useVideos, useTags } from '~/hooks'
+import { useVideosQuery, useTags } from '~/hooks'
 import type { VideoSort } from '~/types/video'
 
 /** Sidebar width constant */
@@ -36,13 +45,27 @@ interface VideoGridProps {
 }
 
 const VideoGrid: React.FC<VideoGridProps> = ({ selectedTagId, sort = 'newest', page }) => {
-  const { data } = useVideos({
+  const { data, isLoading } = useVideosQuery({
     page,
     limit: 12,
     sort,
     tag_id: selectedTagId ?? undefined,
     has_transcript: true,
   })
+
+  // Show loading spinner in the center if data is loading
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  // Show skeleton if data hasn't loaded yet
+  if (!data) {
+    return <VideoGridSkeleton />
+  }
 
   return (
     <Grid container spacing={3}>
@@ -125,10 +148,8 @@ const Homepage: React.FC = () => {
             onCategoryChange={handleCategoryChange}
           />
 
-          {/* Video Grid with Suspense */}
-          <Suspense fallback={<VideoGridSkeleton />}>
-            <VideoGrid selectedTagId={selectedTagId} sort={sort} page={page} />
-          </Suspense>
+          {/* Video Grid - No Suspense boundary needed, uses regular useQuery with loading state */}
+          <VideoGrid selectedTagId={selectedTagId} sort={sort} page={page} />
 
           {/* Pagination */}
           <Stack alignItems="center" sx={{ mt: 4 }}>

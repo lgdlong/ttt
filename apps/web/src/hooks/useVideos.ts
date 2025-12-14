@@ -33,6 +33,18 @@ export function useVideos(params?: ListVideoRequest) {
 }
 
 /**
+ * Hook to fetch videos list WITHOUT suspense (for list pages where we want to show loading indicator)
+ * Use this in components where you want to avoid triggering outer Suspense boundaries
+ * Shows loading/error state locally instead of suspending the entire component tree
+ */
+export function useVideosQuery(params?: ListVideoRequest) {
+  return useQuery({
+    queryKey: videoKeys.list(params),
+    queryFn: () => videoApi.fetchVideos(params),
+  })
+}
+
+/**
  * Hook to fetch single video detail
  */
 export function useVideoDetail(id: string) {
