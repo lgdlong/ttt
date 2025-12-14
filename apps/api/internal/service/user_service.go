@@ -45,8 +45,8 @@ func (s *userService) CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, 
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 		FullName:     req.FullName,
-		Role:         string(domain.UserRoleUser), // Always default to 'user' role
-		IsActive:     true,                        // Default: active
+		Role:         domain.UserRoleUser, // Always default to 'user' role
+		IsActive:     true,                // Default: active
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
@@ -192,7 +192,7 @@ func (s *userService) toUserResponse(user *domain.User) *dto.UserResponse {
 		Username:  user.Username,
 		Email:     user.Email,
 		FullName:  user.FullName,
-		Role:      user.Role,
+		Role:      string(user.Role),
 		IsActive:  user.IsActive,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,

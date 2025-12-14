@@ -142,9 +142,9 @@ func (s *authService) Signup(req dto.SignupRequest) (*dto.AuthResponse, error) {
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		FullName:     req.FullName,                // Optional full name
-		Role:         string(domain.UserRoleUser), // Default: user
-		IsActive:     true,                        // Default: active
+		FullName:     req.FullName,     // Optional full name
+		Role:         domain.UserRoleUser, // Default: user
+		IsActive:     true,             // Default: active
 	}
 
 	if err := s.userRepo.CreateUser(user); err != nil {
@@ -326,7 +326,7 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 		Email:        googleUser.Email,
 		PasswordHash: "", // No password for OAuth users
 		FullName:     googleUser.Name,
-		Role:         string(domain.UserRoleUser),
+		Role:         domain.UserRoleUser,
 		IsActive:     true,
 	}
 
@@ -468,7 +468,7 @@ func (s *authService) toUserResponse(user *domain.User) *dto.UserResponse {
 		Username:  user.Username,
 		Email:     user.Email,
 		FullName:  user.FullName,
-		Role:      user.Role,
+		Role:      string(user.Role),
 		IsActive:  user.IsActive,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
