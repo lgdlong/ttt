@@ -48,17 +48,9 @@ func NewAuthService(
 ) domain.AuthService {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		env := os.Getenv("GO_ENV")
-		if env == "" {
-			env = os.Getenv("APP_ENV")
-		}
-		if env == "development" || env == "test" {
-			jwtSecret = "dev-insecure-secret" // Only allow fallback in dev/test
-			fmt.Println("[WARN] JWT_SECRET is unset, using insecure in-memory secret (dev/test only)")
-		} else {
-			// Fail fast in production/staging
-			panic("FATAL: JWT_SECRET environment variable is required in production. Refuse to start with insecure secret.")
-		}
+		// The application should NEVER run with a default secret.
+		// Fail fast if the secret is not configured.
+		panic("FATAL: JWT_SECRET is not set")
 	}
 
 	// Google OAuth config

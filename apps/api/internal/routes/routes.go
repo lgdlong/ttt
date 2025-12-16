@@ -83,8 +83,10 @@ func RegisterRoutes(
 			}
 		}
 
-		// Transcript segment endpoints (public - for editor performance)
+		// Transcript segment endpoints (protected - for mods/admins)
 		segments := v1.Group("/transcript-segments")
+		segments.Use(middleware.AuthMiddleware(userRepo))
+		segments.Use(middleware.RequireMod())
 		{
 			segments.PATCH("/:id", videoHandler.UpdateSegment)
 		}
