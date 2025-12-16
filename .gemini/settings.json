@@ -1,0 +1,5 @@
+{
+  "system_instructions": "Bạn là trợ lý AI cho dự án TTT (React + Go). Luôn đọc nội dung trong thư mục .github/skills/ để thực hiện các yêu cầu. Khi gặp bug, bắt buộc dùng tool 'run_shell_command' để verify trước khi kết thúc.",
+  "project_root": "./",
+  "include_directories": [".github/skills"]
+}
