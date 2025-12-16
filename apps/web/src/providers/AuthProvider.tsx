@@ -1,15 +1,26 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { UserResponse, LoginRequest, SignupRequest } from '~/types/user'
 import {
-  getCurrentUser,
   getMe,
   login as apiLogin,
   signup as apiSignup,
   logout as apiLogout,
   loginWithGoogle,
-  getRedirectPathByRole,
 } from '~/api/authApi'
+import { getRedirectPathByRole } from '~/lib/authUtils'
 import { useNavigate } from 'react-router-dom'
+
+// This function is a local utility, not from the API
+const getCurrentUser = (): UserResponse | null => {
+  const userJson = localStorage.getItem('user')
+  if (!userJson) return null
+  try {
+    return JSON.parse(userJson)
+  } catch {
+    return null
+  }
+}
+
 
 interface AuthContextType {
   user: UserResponse | null

@@ -35,7 +35,7 @@ import {
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
 } from '@mui/icons-material'
-import { listUsers, updateUser } from '~/api/authApi'
+import { listUsers, updateUser } from '~/api/userApi'
 import type { UserResponse, UserRole, ListUserRequest } from '~/types/user'
 
 /**
@@ -117,7 +117,7 @@ const UserManagement: React.FC = () => {
 
     setActionLoading(true)
     try {
-      await updateUser(selectedUser.id, { is_active: !selectedUser.is_active })
+      await updateUser({ id: selectedUser.id, data: { is_active: !selectedUser.is_active } })
       // Refresh list
       await fetchUsers()
       setBanDialogOpen(false)
