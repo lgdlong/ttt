@@ -155,12 +155,21 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		userRole := role.(string)
+		userRole, ok := role.(domain.UserRole)
+		if !ok {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{
+				Error:   "Forbidden",
+				Message: "User role in context is of an unexpected type.",
+				Code:    http.StatusForbidden,
+			})
+			c.Abort()
+			return
+		}
 
 		// Check if user's role is in allowed roles
 		allowed := false
 		for _, r := range allowedRoles {
-			if userRole == r {
+			if string(userRole) == r {
 				allowed = true
 				break
 			}
