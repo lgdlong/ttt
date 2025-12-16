@@ -50,6 +50,7 @@ func RegisterRoutes(
 			authProtected.Use(middleware.AuthMiddleware(userRepo))
 			{
 				authProtected.GET("/me", authHandler.Me)
+				authProtected.PATCH("/me", authHandler.UpdateMe)
 				authProtected.GET("/sessions", authHandler.GetActiveSessions)
 			}
 		}

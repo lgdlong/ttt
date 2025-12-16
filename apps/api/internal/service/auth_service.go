@@ -466,3 +466,44 @@ func (s *authService) toUserResponse(user *domain.User) *dto.UserResponse {
 		UpdatedAt: user.UpdatedAt,
 	}
 }
+
+// UpdateMe updates the currently authenticated user's profile
+func (s *authService) UpdateMe(userID uuid.UUID, req dto.UpdateMeRequest) (*dto.UserResponse, error) {
+	// Get current user
+	currentUser, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	updates := make(map[string]interface{})
+
+	if req.FullName != nil {
+		updates["full_name"] = *req.FullName
+	}
+
+	if req.Email != nil && *req.Email != currentUser.Email {
+		// Check if the new email is already taken
+		if _, err := s.userRepo.GetUserByEmail(*req.Email); err == nil {
+			return nil, errors.New("email is already in use")
+		}
+		updates["email"] = *req.Email
+	}
+
+	// If there are no updates, just return the current user
+	if len(updates) == 0 {
+		return s.toUserResponse(currentUser), nil
+	}
+
+	// Apply updates
+	if err := s.userRepo.UpdateUser(userID, updates); err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	// Fetch updated user to return
+	updatedUser, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, errors.New("failed to fetch updated user information")
+	}
+
+	return s.toUserResponse(updatedUser), nil
+}

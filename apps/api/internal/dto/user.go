@@ -71,6 +71,12 @@ type AuthResponse struct {
 	Token string       `json:"token,omitempty"` // JWT token (omitted when using cookies)
 }
 
+// UpdateMeRequest - Request for a user to update their own profile info
+type UpdateMeRequest struct {
+	FullName *string `json:"full_name" binding:"omitempty,max=100"`
+	Email    *string `json:"email" binding:"omitempty,email,max=100"`
+}
+
 // GoogleAuthURLResponse - Response with Google OAuth URL
 type GoogleAuthURLResponse struct {
 	URL string `json:"url"`

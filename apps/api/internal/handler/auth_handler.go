@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -337,6 +338,72 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userResponse)
+}
+
+// UpdateMe godoc
+// @Summary Update current user
+// @Description Update the currently authenticated user's profile information (full_name, email)
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param profile body dto.UpdateMeRequest true "Profile information to update"
+// @Success 200 {object} dto.UserResponse
+// @Failure 400 {object} dto.ErrorResponse "Invalid request body or validation error"
+// @Failure 401 {object} dto.ErrorResponse "User not authenticated"
+// @Failure 409 {object} dto.ErrorResponse "Email already in use"
+// @Router /auth/me [patch]
+func (h *AuthHandler) UpdateMe(c *gin.Context) {
+	// Get user from context (set by auth middleware)
+	userCtx, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   "Unauthorized",
+			Message: "User not found in context",
+			Code:    http.StatusUnauthorized,
+		})
+		return
+	}
+
+	// We know user is a *dto.UserResponse from the middleware
+	currentUser := userCtx.(*dto.UserResponse)
+	userID, err := uuid.Parse(currentUser.ID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   "Unauthorized",
+			Message: "Invalid user ID in context",
+			Code:    http.StatusUnauthorized,
+		})
+		return
+	}
+
+	// Bind request body
+	var req dto.UpdateMeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid request body",
+			Message: err.Error(),
+			Code:    http.StatusBadRequest,
+		})
+		return
+	}
+
+	// Call service to update the user
+	updatedUser, err := h.service.UpdateMe(userID, req)
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "email is already in use" {
+			statusCode = http.StatusConflict
+		}
+		c.JSON(statusCode, dto.ErrorResponse{
+			Error:   "Failed to update profile",
+			Message: err.Error(),
+			Code:    statusCode,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedUser)
 }
 
 // GetActiveSessions godoc

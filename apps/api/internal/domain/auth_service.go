@@ -23,4 +23,7 @@ type AuthService interface {
 	// Session management
 	CreateSession(userID uuid.UUID, userAgent, clientIP string) (*Session, string, error)
 	ValidateSession(sessionID uuid.UUID) (*Session, error)
+
+	// Profile management
+	UpdateMe(userID uuid.UUID, req dto.UpdateMeRequest) (*dto.UserResponse, error)
 }
