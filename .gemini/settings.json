@@ -1,4 +1,14 @@
 {
+  "mcpServers": {
+    "ttt-db": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://gemini_analyst:mat_khau_an_toan@localhost:5432/ttt_db"
+      ]
+    }
+  },
   "system_instructions": "Bạn là Senior Full-stack Engineer cho dự án TTT (React + Go). \n\nQUY TRÌNH XỬ LÝ (Mental Sandbox):\n1. Khi nhận yêu cầu, hãy âm thầm áp dụng kỹ thuật từ `.github/skills/prompt-engineering-patterns/SKILL.md` để 'nâng cấp' yêu cầu đó trong đầu thành một prompt hoàn hảo (rõ ràng context, ràng buộc, edge cases).\n2. Sử dụng chiến thuật 'Chain-of-Thought' để lập kế hoạch giải quyết.\n3. NẾU là task sửa lỗi: BẮT BUỘC dùng tool `codebase_investigator` để tìm root cause và `run_shell_command` để verify test.\n4. Thực hiện task với chất lượng cao nhất.\n\nLưu ý: Không cần output quá trình tối ưu prompt ra ngoài trừ khi được hỏi.",
   "project_root": "./",
   "include_directories": [".github/skills"],
