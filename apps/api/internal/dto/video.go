@@ -7,6 +7,7 @@ type ListVideoRequest struct {
 	Sort          string `form:"sort" binding:"omitempty,oneof=newest popular views"`
 	TagID         string `form:"tag_id" binding:"omitempty,uuid"`
 	HasTranscript *bool  `form:"has_transcript" binding:"omitempty"` // nil = all, true = only with transcript, false = only without
+	IsReviewed    *bool  `form:"is_reviewed" binding:"omitempty"`    // nil = all, true = only reviewed, false = only not reviewed
 	Q             string `form:"q" binding:"omitempty"`              // Search query - searches in Title OR Tag Name
 }
 

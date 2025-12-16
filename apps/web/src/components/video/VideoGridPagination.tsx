@@ -7,7 +7,9 @@ interface VideoGridPaginationProps {
   page: number
   limit?: number // Added limit prop for consistency
   onPageChange: (page: number) => void
-  selectedTagId: string | null
+  hasTranscript?: boolean
+  isReviewed?: boolean
+  selectedTagId?: string
   sort: VideoSort
 }
 
@@ -15,6 +17,8 @@ const VideoGridPagination: React.FC<VideoGridPaginationProps> = ({
   page,
   limit = 12, // Default to 12 to match VideoGrid
   onPageChange,
+  hasTranscript,
+  isReviewed,
   selectedTagId,
   sort,
 }) => {
@@ -22,8 +26,9 @@ const VideoGridPagination: React.FC<VideoGridPaginationProps> = ({
     page,
     limit,
     sort,
-    tag_id: selectedTagId ?? undefined,
-    has_transcript: true,
+    has_transcript: hasTranscript,
+    is_reviewed: isReviewed,
+    tag_id: selectedTagId,
   })
 
   if (!data || data.pagination.total_pages <= 1) {

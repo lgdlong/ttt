@@ -54,6 +54,21 @@ func (r *videoRepository) GetVideoList(req dto.ListVideoRequest) ([]domain.Video
 		query = query.Where("has_transcript = ?", *req.HasTranscript)
 	}
 
+	// Apply is_reviewed filter if provided
+	if req.IsReviewed != nil {
+		if *req.IsReviewed {
+			query = query.Where("EXISTS (?)", r.db.Model(&domain.VideoTranscriptReview{}).
+				Select("1").
+				Where("video_transcript_reviews.video_id = videos.id").
+				Limit(1)) // Limit 1 for EXISTS subquery optimization
+		} else {
+			query = query.Where("NOT EXISTS (?)", r.db.Model(&domain.VideoTranscriptReview{}).
+				Select("1").
+				Where("video_transcript_reviews.video_id = videos.id").
+				Limit(1)) // Limit 1 for NOT EXISTS subquery optimization
+		}
+	}
+
 	// Count total before pagination (need to count distinct videos)
 	countQuery := query.Session(&gorm.Session{})
 	if req.Q != "" {
@@ -218,7 +233,7 @@ func (r *videoRepository) SearchTranscripts(query string, limit int) ([]dto.Tran
 	var results []dto.TranscriptSearchResult
 
 	sql := `
-		SELECT 
+		SELECT
 			ts.video_id,
 			v.title as video_title,
 			v.thumbnail_url,
@@ -226,13 +241,14 @@ func (r *videoRepository) SearchTranscripts(query string, limit int) ([]dto.Tran
 			ts.end_time,
 			ts.text_content as text,
 			ts_rank(ts.tsv, websearch_to_tsquery('english', ?)) as rank
-		FROM 
+		FROM
 			transcript_segments ts
-		JOIN 
-			videos v ON ts.video_id = v.id
-		WHERE 
+		JOIN
+		
+videos v ON ts.video_id = v.id
+		WHERE
 			ts.tsv @@ websearch_to_tsquery('english', ?)
-		ORDER BY 
+		ORDER BY
 			rank DESC, ts.start_time ASC
 		LIMIT ?
 	`
@@ -252,15 +268,15 @@ func (r *videoRepository) SearchTagsByVector(embedding []float32, limit int, min
 	embeddingStr := fmt.Sprintf("[%v]", embedding)
 
 	sql := `
-		SELECT 
-			id, 
-			name, 
+		SELECT
+			id,
+			name,
 			1 - (embedding <=> ?::vector) as similarity
-		FROM 
+		FROM
 			tags
-		WHERE 
+		WHERE
 			1 - (embedding <=> ?::vector) > ?
-		ORDER BY 
+		ORDER BY
 			embedding <=> ?::vector
 		LIMIT ?
 	`
