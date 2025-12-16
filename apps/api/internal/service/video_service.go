@@ -3,15 +3,9 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
-	"encoding/json"
+	"api/internal/helper"
 	"fmt"
 	"math"
-	"net/http"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -45,6 +39,19 @@ func (s *videoService) GetModVideoList(page, pageSize int, searchQuery, tagIDsSt
 		return nil, 0, fmt.Errorf("failed to get video list: %w", err)
 	}
 
+	// Get review counts for all videos in this page
+	videoIDs := make([]uuid.UUID, len(videos))
+	for i, video := range videos {
+		videoIDs[i] = video.ID
+	}
+
+	reviewCounts, err := s.repo.GetReviewCountsForVideos(videoIDs)
+	if err != nil {
+		// Log error but don't fail - just set review counts to 0
+		fmt.Printf("Warning: Failed to get review counts: %v\n", err)
+		reviewCounts = make(map[uuid.UUID]int)
+	}
+
 	// Convert to mod DTOs with tags
 	result := make([]dto.ModVideoResponse, len(videos))
 	for i, video := range videos {
@@ -66,6 +73,7 @@ func (s *videoService) GetModVideoList(page, pageSize int, searchQuery, tagIDsSt
 			PublishedAt:   video.PublishedAt.Format("2006-01-02"),
 			ViewCount:     video.ViewCount,
 			HasTranscript: video.HasTranscript,
+			ReviewCount:   reviewCounts[video.ID],
 			Tags:          tags,
 			CreatedAt:     video.CreatedAt.Format("2006-01-02T15:04:05Z"),
 			UpdatedAt:     video.UpdatedAt.Format("2006-01-02T15:04:05Z"),
@@ -106,7 +114,7 @@ func (s *videoService) GetVideoList(req dto.ListVideoRequest) (*dto.VideoListRes
 	// Convert to DTOs with review counts
 	videoCards := make([]dto.VideoCardResponse, len(videos))
 	for i, video := range videos {
-		videoCards[i] = s.toVideoCardResponse(&video)
+		videoCards[i] = helper.ToVideoCardResponse(&video)
 		videoCards[i].ReviewCount = reviewCounts[video.ID]
 	}
 
@@ -136,7 +144,14 @@ func (s *videoService) GetVideoDetail(id string) (*dto.VideoDetailResponse, erro
 		return nil, fmt.Errorf("video not found: %w", err)
 	}
 
-	return s.toVideoDetailResponse(video), nil
+	// Fetch review count for this single video
+	reviewCounts, err := s.repo.GetReviewCountsForVideos([]uuid.UUID{videoUUID})
+	reviewCount := 0
+	if err == nil {
+		reviewCount = reviewCounts[videoUUID]
+	}
+
+	return helper.ToVideoDetailResponse(video, reviewCount), nil
 }
 
 // GetVideoTranscript retrieves transcript segments for a video
@@ -151,7 +166,7 @@ func (s *videoService) GetVideoTranscript(id string) (*dto.TranscriptResponse, e
 		return nil, fmt.Errorf("failed to get transcript: %w", err)
 	}
 
-	return s.toTranscriptResponse(id, segments), nil
+	return helper.ToTranscriptResponse(id, segments), nil
 }
 
 // UpdateSegment updates a single transcript segment
@@ -246,54 +261,6 @@ func (s *videoService) SearchTags(req dto.TagSearchRequest) (*dto.TagSearchRespo
 	*/
 }
 
-// Helper: Convert domain.Video to dto.VideoCardResponse
-func (s *videoService) toVideoCardResponse(video *domain.Video) dto.VideoCardResponse {
-	return dto.VideoCardResponse{
-		ID:            video.ID.String(),
-		YoutubeID:     video.YoutubeID,
-		Title:         video.Title,
-		ThumbnailURL:  video.ThumbnailURL,
-		Duration:      video.Duration,
-		PublishedAt:   video.PublishedAt.Format("2006-01-02"),
-		ViewCount:     video.ViewCount,
-		HasTranscript: video.HasTranscript,
-	}
-}
-
-// Helper: Convert domain.Video to dto.VideoDetailResponse
-func (s *videoService) toVideoDetailResponse(video *domain.Video) *dto.VideoDetailResponse {
-	tags := make([]dto.TagResponse, len(video.CanonicalTags))
-	for i, tag := range video.CanonicalTags {
-		tags[i] = dto.TagResponse{
-			ID:   tag.ID.String(),
-			Name: tag.DisplayName,
-		}
-	}
-
-	return &dto.VideoDetailResponse{
-		VideoCardResponse: s.toVideoCardResponse(video),
-		Tags:              tags,
-	}
-}
-
-// Helper: Convert segments to dto.TranscriptResponse
-func (s *videoService) toTranscriptResponse(videoID string, segments []domain.TranscriptSegment) *dto.TranscriptResponse {
-	segmentDTOs := make([]dto.SegmentResponse, len(segments))
-	for i, seg := range segments {
-		segmentDTOs[i] = dto.SegmentResponse{
-			ID:        seg.ID,
-			StartTime: seg.StartTime,
-			EndTime:   seg.EndTime,
-			Text:      seg.TextContent,
-		}
-	}
-
-	return &dto.TranscriptResponse{
-		VideoID:  videoID,
-		Segments: segmentDTOs,
-	}
-}
-
 // CreateVideo creates a new video by fetching metadata from YouTube
 func (s *videoService) CreateVideo(req dto.CreateVideoRequest) (*dto.VideoCreateResponse, error) {
 	// Check if video already exists
@@ -302,7 +269,7 @@ func (s *videoService) CreateVideo(req dto.CreateVideoRequest) (*dto.VideoCreate
 	}
 
 	// Fetch metadata from YouTube
-	youtubeInfo, err := s.fetchYouTubeMetadata(req.YoutubeID)
+	youtubeInfo, err := helper.FetchYouTubeMetadata(req.YoutubeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch YouTube metadata: %w", err)
 	}
@@ -344,7 +311,7 @@ func (s *videoService) PreviewYouTubeVideo(youtubeID string) (*dto.VideoCreateRe
 	}
 
 	// Fetch metadata from YouTube API
-	metadata, err := s.fetchYouTubeMetadata(youtubeID)
+	metadata, err := helper.FetchYouTubeMetadata(youtubeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch YouTube metadata: %w", err)
 	}
@@ -395,7 +362,7 @@ func (s *videoService) SearchVideos(query string, page, limit int) (*dto.VideoLi
 
 	videoCards := make([]dto.VideoCardResponse, len(videos))
 	for i, video := range videos {
-		videoCards[i] = s.toVideoCardResponse(&video)
+		videoCards[i] = helper.ToVideoCardResponse(&video)
 	}
 
 	totalPages := int(math.Ceil(float64(total) / float64(limit)))
@@ -409,119 +376,4 @@ func (s *videoService) SearchVideos(query string, page, limit int) (*dto.VideoLi
 			TotalPages: totalPages,
 		},
 	}, nil
-}
-
-// fetchYouTubeMetadata fetches video metadata from YouTube Data API
-func (s *videoService) fetchYouTubeMetadata(youtubeID string) (*dto.YouTubeVideoInfo, error) {
-	apiKey := os.Getenv("YOUTUBE_API_KEY")
-	if apiKey == "" {
-		// Fallback: create placeholder metadata if no API key
-		return &dto.YouTubeVideoInfo{
-			ID:           youtubeID,
-			Title:        fmt.Sprintf("Video %s (pending metadata)", youtubeID),
-			PublishedAt:  time.Now(),
-			Duration:     0,
-			ViewCount:    0,
-			ThumbnailURL: fmt.Sprintf("https://img.youtube.com/vi/%s/maxresdefault.jpg", youtubeID),
-		}, nil
-	}
-
-	url := fmt.Sprintf(
-		"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=%s&key=%s",
-		youtubeID, apiKey,
-	)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call YouTube API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("YouTube API returned status: %d", resp.StatusCode)
-	}
-
-	var result struct {
-		Items []struct {
-			ID      string `json:"id"`
-			Snippet struct {
-				Title       string `json:"title"`
-				PublishedAt string `json:"publishedAt"`
-				Thumbnails  struct {
-					High struct {
-						URL string `json:"url"`
-					} `json:"high"`
-					Maxres struct {
-						URL string `json:"url"`
-					} `json:"maxres"`
-				} `json:"thumbnails"`
-			} `json:"snippet"`
-			ContentDetails struct {
-				Duration string `json:"duration"` // ISO 8601 format: PT1H2M3S
-			} `json:"contentDetails"`
-			Statistics struct {
-				ViewCount string `json:"viewCount"`
-			} `json:"statistics"`
-		} `json:"items"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode YouTube response: %w", err)
-	}
-
-	if len(result.Items) == 0 {
-		return nil, fmt.Errorf("video not found on YouTube")
-	}
-
-	item := result.Items[0]
-
-	// Parse published date
-	publishedAt, err := time.Parse(time.RFC3339, item.Snippet.PublishedAt)
-	if err != nil {
-		publishedAt = time.Now()
-	}
-
-	// Parse duration (ISO 8601 to seconds)
-	duration := parseDuration(item.ContentDetails.Duration)
-
-	// Parse view count
-	viewCount, _ := strconv.Atoi(item.Statistics.ViewCount)
-
-	// Get best thumbnail
-	thumbnailURL := item.Snippet.Thumbnails.High.URL
-	if item.Snippet.Thumbnails.Maxres.URL != "" {
-		thumbnailURL = item.Snippet.Thumbnails.Maxres.URL
-	}
-
-	return &dto.YouTubeVideoInfo{
-		ID:           item.ID,
-		Title:        item.Snippet.Title,
-		PublishedAt:  publishedAt,
-		Duration:     duration,
-		ViewCount:    viewCount,
-		ThumbnailURL: thumbnailURL,
-	}, nil
-}
-
-// parseDuration converts ISO 8601 duration (PT1H2M3S) to seconds
-func parseDuration(isoDuration string) int {
-	// Remove PT prefix
-	d := strings.TrimPrefix(isoDuration, "PT")
-
-	var hours, minutes, seconds int
-
-	// Match hours
-	if h := regexp.MustCompile(`(\d+)H`).FindStringSubmatch(d); len(h) > 1 {
-		hours, _ = strconv.Atoi(h[1])
-	}
-	// Match minutes
-	if m := regexp.MustCompile(`(\d+)M`).FindStringSubmatch(d); len(m) > 1 {
-		minutes, _ = strconv.Atoi(m[1])
-	}
-	// Match seconds
-	if s := regexp.MustCompile(`(\d+)S`).FindStringSubmatch(d); len(s) > 1 {
-		seconds, _ = strconv.Atoi(s[1])
-	}
-
-	return hours*3600 + minutes*60 + seconds
 }

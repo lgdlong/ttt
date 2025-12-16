@@ -102,6 +102,7 @@ type ModVideoResponse struct {
 	PublishedAt   string        `json:"published_at"`
 	ViewCount     int           `json:"view_count"`
 	HasTranscript bool          `json:"has_transcript"`
+	ReviewCount   int           `json:"review_count"` // Number of reviews
 	Tags          []TagResponse `json:"tags"`
 	CreatedAt     string        `json:"created_at"`
 	UpdatedAt     string        `json:"updated_at"`

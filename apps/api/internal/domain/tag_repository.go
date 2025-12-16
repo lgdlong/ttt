@@ -37,7 +37,7 @@ type TagRepository interface {
 	UpdateCanonicalTag(ctx context.Context, canonical *CanonicalTag) error
 
 	// ListCanonicalTags returns paginated list of canonical tags
-	ListCanonicalTags(ctx context.Context, page, limit int) ([]CanonicalTag, int64, error)
+	ListCanonicalTags(ctx context.Context, page, limit int, approvedOnly bool) ([]CanonicalTag, int64, error)
 
 	// SearchCanonicalTags searches canonical tags (hybrid: SQL LIKE + Vector)
 	SearchCanonicalTags(ctx context.Context, query string, limit int, approvedOnly bool) ([]CanonicalTag, error)

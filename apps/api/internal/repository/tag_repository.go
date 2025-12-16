@@ -201,26 +201,28 @@ func (r *tagRepository) UpdateCanonicalTag(ctx context.Context, canonical *domai
 	return r.db.WithContext(ctx).Save(canonical).Error
 }
 
-// ListCanonicalTags returns paginated list of approved canonical tags only
-func (r *tagRepository) ListCanonicalTags(ctx context.Context, page, limit int) ([]domain.CanonicalTag, int64, error) {
+// ListCanonicalTags returns a paginated list of canonical tags.
+// If approvedOnly is true, it returns only approved tags. Otherwise, it returns all tags.
+func (r *tagRepository) ListCanonicalTags(ctx context.Context, page, limit int, approvedOnly bool) ([]domain.CanonicalTag, int64, error) {
 	var canonicals []domain.CanonicalTag
 	var total int64
 
-	// Count total approved tags only
-	if err := r.db.WithContext(ctx).Model(&domain.CanonicalTag{}).
-		Where("is_approved = ?", true).
-		Count(&total).Error; err != nil {
+	// Base query
+	query := r.db.WithContext(ctx).Model(&domain.CanonicalTag{})
+
+	// Conditionally apply filter
+	if approvedOnly {
+		query = query.Where("is_approved = ?", true)
+	}
+
+	// Count total records based on the same filter
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Query with pagination - approved tags only
+	// Query with pagination
 	offset := (page - 1) * limit
-	if err := r.db.WithContext(ctx).
-		Where("is_approved = ?", true).
-		Order("display_name ASC").
-		Offset(offset).
-		Limit(limit).
-		Find(&canonicals).Error; err != nil {
+	if err := query.Order("display_name ASC").Offset(offset).Limit(limit).Find(&canonicals).Error; err != nil {
 		return nil, 0, err
 	}
 
