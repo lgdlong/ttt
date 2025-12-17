@@ -7,6 +7,7 @@ import {
   logout as apiLogout,
   loginWithGoogle,
 } from '~/api/authApi'
+import { eventBus } from '~/lib/apiClient'
 import { getRedirectPathByRole } from '~/lib/authUtils'
 import { useNavigate } from 'react-router-dom'
 
@@ -21,14 +22,13 @@ const getCurrentUser = (): UserResponse | null => {
   }
 }
 
-
 interface AuthContextType {
   user: UserResponse | null
   isLoading: boolean
   isAuthenticated: boolean
   login: (req: LoginRequest) => Promise<void>
   signup: (req: SignupRequest) => Promise<void>
-  logout: () => Promise<void>
+  logout: (options?: { navigate: boolean }) => Promise<void>
   loginWithGoogle: () => Promise<void>
   refreshUser: () => Promise<void>
   hasRole: (roles: string[]) => boolean
@@ -47,31 +47,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
 
+  const handleLogout = useCallback(() => {
+    setUser(null)
+    localStorage.removeItem('user')
+    navigate('/login')
+  }, [navigate])
+
+  useEffect(() => {
+    eventBus.on('auth:logout', handleLogout)
+    return () => {
+      eventBus.off('auth:logout', handleLogout)
+    }
+  }, [handleLogout])
   // Refresh user data from server on mount
   useEffect(() => {
     const initAuth = async () => {
+      setIsLoading(true)
       try {
-        // If we have user in localStorage, validate with server
-        if (user) {
-          const serverUser = await getMe()
-          setUser(serverUser)
-        }
+        // We always try to fetch the user on initial load
+        const serverUser = await getMe()
+        setUser(serverUser)
+        localStorage.setItem('user', JSON.stringify(serverUser))
       } catch {
-        // Token invalid or expired, clear local state
-        localStorage.removeItem('user')
-        setUser(null)
+        // If getMe fails, it means no valid token, so we are logged out.
+        handleLogout()
       } finally {
         setIsLoading(false)
       }
     }
 
     initAuth()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleLogout])
 
   const login = useCallback(
     async (req: LoginRequest) => {
       const response = await apiLogin(req)
       setUser(response.user)
+      localStorage.setItem('user', JSON.stringify(response.user))
       // Navigate based on role
       const redirectPath = getRedirectPathByRole(response.user.role)
       navigate(redirectPath)
@@ -83,17 +95,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     async (req: SignupRequest) => {
       const response = await apiSignup(req)
       setUser(response.user)
+      localStorage.setItem('user', JSON.stringify(response.user))
       // New users always go to home
       navigate('/')
     },
     [navigate]
   )
 
-  const logout = useCallback(async () => {
-    await apiLogout()
-    setUser(null)
-    // apiLogout already redirects to /login
-  }, [])
+  const logout = useCallback(
+    async (options = { navigate: true }) => {
+      try {
+        await apiLogout()
+      } catch (error) {
+        console.error('Logout failed, but clearing client state anyway.', error)
+      } finally {
+        // Ensure client-side logout always happens
+        setUser(null)
+        localStorage.removeItem('user')
+        if (options.navigate) {
+          navigate('/login')
+        }
+      }
+    },
+    [navigate]
+  )
 
   const handleLoginWithGoogle = useCallback(async () => {
     await loginWithGoogle()
@@ -104,6 +129,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const serverUser = await getMe()
       setUser(serverUser)
+      localStorage.setItem('user', JSON.stringify(serverUser))
     } catch {
       setUser(null)
       localStorage.removeItem('user')

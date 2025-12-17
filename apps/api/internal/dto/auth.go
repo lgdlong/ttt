@@ -20,8 +20,9 @@ type SignupRequest struct {
 
 // AuthResponse - Response after successful login/signup
 type AuthResponse struct {
-	User  UserResponse `json:"user"`
-	Token string       `json:"token,omitempty"` // JWT token (omitted when using cookies)
+	User         UserResponse `json:"user"`
+	Token        string       `json:"token,omitempty"` // JWT token (omitted when using cookies)
+	RefreshToken string       `json:"-"`
 }
 
 // UpdateMeRequest - Request for a user to update their own profile info

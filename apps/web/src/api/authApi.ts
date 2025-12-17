@@ -48,17 +48,19 @@ export const signup = async (payload: SignupRequest): Promise<{ user: UserRespon
 }
 
 /**
-
- * Log out the current user
-
+ * Log out the current user and revoke their refresh token
  * POST /api/v1/auth/logout
-
  */
-
 export const logout = async (): Promise<void> => {
-
   await v1ApiClient.post('/auth/logout')
+}
 
+/**
+ * Request a new access token using the refresh token (HttpOnly cookie)
+ * POST /api/v1/auth/refresh-token
+ */
+export const refreshToken = async (): Promise<void> => {
+  await v1ApiClient.post('/auth/refresh')
 }
 
 

@@ -38,8 +38,7 @@ func RegisterRoutes(
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/signup", authHandler.Signup)
 			auth.POST("/logout", authHandler.Logout)
-			// TODO: TEMPORARILY DISABLED - Session and Refresh Token
-			// auth.POST("/refresh", authHandler.RefreshToken)
+			auth.POST("/refresh", authHandler.RefreshToken)
 
 			// Google OAuth
 			auth.GET("/google", authHandler.GoogleAuth)
@@ -52,6 +51,7 @@ func RegisterRoutes(
 				authProtected.GET("/me", authHandler.Me)
 				authProtected.PATCH("/me", authHandler.UpdateMe)
 				authProtected.GET("/sessions", authHandler.GetActiveSessions)
+				authProtected.POST("/logout-all", authHandler.LogoutAll)
 			}
 		}
 

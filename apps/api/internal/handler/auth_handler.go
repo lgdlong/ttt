@@ -98,7 +98,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.Login(req)
+	userAgent := c.GetHeader("User-Agent")
+	clientIP := c.ClientIP()
+
+	response, err := h.service.Login(req, userAgent, clientIP)
 	if err != nil {
 		statusCode := http.StatusUnauthorized
 		if err.Error() == "account is deactivated" {
@@ -114,8 +117,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Set token in cookie
 	h.setAuthCookie(c, response.Token)
-	// TODO: TEMPORARILY DISABLED - Session and Refresh Token
-	// h.setRefreshCookie(c, response.RefreshToken)
+	h.setRefreshCookie(c, response.RefreshToken)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -142,7 +144,10 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.Signup(req)
+	userAgent := c.GetHeader("User-Agent")
+	clientIP := c.ClientIP()
+
+	response, err := h.service.Signup(req, userAgent, clientIP)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err.Error() == "username already exists" || err.Error() == "email already exists" {
@@ -158,8 +163,7 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 
 	// Set token in cookie
 	h.setAuthCookie(c, response.Token)
-	// TODO: TEMPORARILY DISABLED - Session and Refresh Token
-	// h.setRefreshCookie(c, response.RefreshToken)
+	h.setRefreshCookie(c, response.RefreshToken)
 
 	c.JSON(http.StatusCreated, response)
 }
@@ -172,13 +176,65 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// Clear cookies
+	// Invalidate the session on the server side
+	refreshToken, err := c.Cookie("refresh_token")
+	if err == nil && refreshToken != "" {
+		// Find session by refresh token
+		session, err := h.service.GetSessionByRefreshToken(refreshToken)
+		if err == nil && session != nil {
+			// Invalidate the specific session
+			_ = h.service.Logout(session.ID) // We can ignore the error here
+		}
+	}
+
+	// Clear cookies on the client side regardless
 	h.clearAuthCookie(c)
-	// TODO: TEMPORARILY DISABLED - Session and Refresh Token
-	// h.clearRefreshCookie(c)
+	h.clearRefreshCookie(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Logged out successfully",
+	})
+}
+
+// LogoutAll godoc
+// @Summary User logout from all devices
+// @Description Logout the current user from all devices and invalidate all their sessions
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string
+// @Router /auth/logout-all [post]
+func (h *AuthHandler) LogoutAll(c *gin.Context) {
+	// Get user ID from context
+	userIDCtx, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   "Unauthorized",
+			Message: "User ID not found in context",
+			Code:    http.StatusUnauthorized,
+		})
+		return
+	}
+
+	userID, ok := userIDCtx.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
+			Error:   "Unauthorized",
+			Message: "Invalid user ID format in context",
+			Code:    http.StatusUnauthorized,
+		})
+		return
+	}
+
+	// Invalidate all user's sessions on the server side
+	_ = h.service.LogoutAll(userID) // We can ignore the error here
+
+	// Clear cookies on the client side regardless
+	h.clearAuthCookie(c)
+	h.clearRefreshCookie(c)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Logged out from all devices successfully",
 	})
 }
 
@@ -190,8 +246,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Success 200 {object} dto.AuthResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Router /auth/refresh [post]
-// TODO: TEMPORARILY DISABLED - Session and Refresh Token
-/*
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
@@ -218,7 +272,6 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
-*/
 
 // GoogleAuth godoc
 // @Summary Initiate Google OAuth login
