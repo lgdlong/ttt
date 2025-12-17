@@ -3,6 +3,7 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
+	"api/internal/helper"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -52,7 +53,7 @@ func NewAuthService(
 	if jwtExpiresInStr == "" {
 		jwtExpiresInStr = JWTDefaultExpiresIn // Default to 24 hours if not set
 	}
-	jwtExpiresIn, err := time.ParseDuration(jwtExpiresInStr)
+	jwtExpiresIn, err := helper.ParseDurationWithDays(jwtExpiresInStr)
 	if err != nil {
 		panic(fmt.Sprintf("FATAL: Invalid JWT_EXPIRES_IN format: %v", err))
 	}
@@ -62,7 +63,7 @@ func NewAuthService(
 	if refreshTokenExpiresInStr == "" {
 		refreshTokenExpiresInStr = "720h" // Default to 30 days if not set
 	}
-	refreshTokenExpiresIn, err := time.ParseDuration(refreshTokenExpiresInStr)
+	refreshTokenExpiresIn, err := helper.ParseDurationWithDays(refreshTokenExpiresInStr)
 	if err != nil {
 		panic(fmt.Sprintf("FATAL: Invalid REFRESH_TOKEN_EXPIRES_IN format: %v", err))
 	}
