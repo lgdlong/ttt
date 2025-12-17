@@ -123,18 +123,8 @@ ttt/
 ## Commands Reference
 
 ```bash
-# Development
-pnpm dev              # Run all apps
-pnpm dev:web          # Frontend only (port 3000)
-pnpm dev:api          # Backend only (port 8080)
-
 # Build
 pnpm build            # Build all (React + Go)
-
-# Quality
-pnpm lint             # Lint all
-pnpm test             # Run tests
-pnpm format           # Format code
 
 # Docker
 docker compose up -d  # Start all services
