@@ -361,7 +361,9 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 		// Attempt to clean up the newly created user if linking fails
 		if err := s.userRepo.DeleteUser(newUser.ID); err != nil {
 			// Log lại để dev biết hệ thống đang bị rác dữ liệu
-			slog.Error("Failed to cleanup user %v: %v", newUser.ID.String(), err)
+			slog.Error("failed to cleanup user after social account link failure",
+				"user_id", newUser.ID.String(),
+				"error", err)
 		}
 		return nil, fmt.Errorf("failed to create social account link: %w", err)
 	}
