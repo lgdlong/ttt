@@ -22,16 +22,7 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
-// GoogleUserInfo represents the user info from Google OAuth
-type GoogleUserInfo struct {
-	ID            string `json:"id"`
-	Email         string `json:"email"`
-	VerifiedEmail bool   `json:"verified_email"`
-	Name          string `json:"name"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Picture       string `json:"picture"`
-}
+
 
 type authService struct {
 	userRepo          domain.UserRepository
@@ -390,7 +381,7 @@ func (s *authService) ValidateSession(sessionID uuid.UUID) (*domain.Session, err
 }
 
 // getGoogleUserInfo fetches user info from Google API
-func (s *authService) getGoogleUserInfo(accessToken string) (*GoogleUserInfo, error) {
+func (s *authService) getGoogleUserInfo(accessToken string) (*dto.GoogleUserInfo, error) {
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + accessToken)
 	if err != nil {
 		return nil, err
@@ -402,7 +393,7 @@ func (s *authService) getGoogleUserInfo(accessToken string) (*GoogleUserInfo, er
 		return nil, err
 	}
 
-	var userInfo GoogleUserInfo
+	var userInfo dto.GoogleUserInfo
 	if err := json.Unmarshal(body, &userInfo); err != nil {
 		return nil, err
 	}
