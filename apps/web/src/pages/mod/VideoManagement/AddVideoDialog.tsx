@@ -16,7 +16,7 @@ import {
   Chip,
 } from '@mui/material'
 import { YouTube as YouTubeIcon } from '@mui/icons-material'
-import axiosInstance from '~/lib/axios'
+import { v1ApiClient } from '~/lib/apiClient'
 import type { Video } from '~types/video'
 import type { TagResponse } from '~types/tag'
 import { extractYoutubeId, formatDuration } from './utils'
@@ -53,7 +53,7 @@ export const AddVideoDialog: React.FC<AddVideoDialogProps> = ({
     setIsFetching(true)
 
     try {
-      const response = await axiosInstance.get(`/mod/videos/preview/${youtubeId}`)
+      const response = await v1ApiClient.get(`/mod/videos/preview/${youtubeId}`)
       setPreviewVideo(response.data)
     } catch (err: any) {
       setYoutubeError(err.response?.data?.error || 'Không thể lấy thông tin video')

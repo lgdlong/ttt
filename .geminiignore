@@ -1,0 +1,30 @@
+# Dependency lock files (Cực nặng, AI đọc vào là chết quota)
+package-lock.json
+pnpm-lock.yaml
+go.sum
+
+# Build artifacts
+dist/
+build/
+bin/
+.vite/
+.turbo/
+
+# Logs
+*.log
+coverage/
+.coverage
+
+# Environment variables
+.env
+.env.*.local
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db

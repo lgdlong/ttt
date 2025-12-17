@@ -2,21 +2,22 @@ import React from 'react'
 import { Stack, Chip } from '@mui/material'
 
 interface FilterBarProps {
-  categories: string[]
-  selectedCategory: string
-  onCategoryChange: (category: string) => void
+  selectedFilter: string
+  onFilterChange: (filter: string) => void
 }
+
+const FILTERS = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'has_transcript', label: 'Có phụ đề' },
+  { value: 'no_transcript', label: 'Chưa có phụ đề' },
+  { value: 'is_reviewed', label: 'Đã duyệt' },
+]
 
 /**
  * FilterBar Component
- * Displays category chips for filtering videos
- * Following UI_Spec.md specifications
+ * Displays filter chips for filtering videos by transcript status
  */
-const FilterBar: React.FC<FilterBarProps> = ({
-  categories,
-  selectedCategory,
-  onCategoryChange,
-}) => {
+const FilterBar: React.FC<FilterBarProps> = ({ selectedFilter, onFilterChange }) => {
   return (
     <Stack
       direction="row"
@@ -35,13 +36,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
         },
       }}
     >
-      {categories.map((category) => (
+      {FILTERS.map((filter) => (
         <Chip
-          key={category}
-          label={category}
+          key={filter.value}
+          label={filter.label}
           clickable
-          color={selectedCategory === category ? 'primary' : 'default'}
-          onClick={() => onCategoryChange(category)}
+          color={selectedFilter === filter.value ? 'primary' : 'default'}
+          onClick={() => onFilterChange(filter.value)}
           sx={{
             fontWeight: 500,
             flexShrink: 0,

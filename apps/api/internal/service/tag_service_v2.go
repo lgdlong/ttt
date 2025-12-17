@@ -280,7 +280,7 @@ func (s *tagServiceV2) ListCanonicalTags(ctx context.Context, req dto.TagListReq
 		}, nil
 	}
 
-	canonicals, total, err := s.tagRepo.ListCanonicalTags(ctx, req.Page, req.Limit)
+	canonicals, total, err := s.tagRepo.ListCanonicalTags(ctx, req.Page, req.Limit, req.ApprovedOnly)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list canonical tags: %w", err)
 	}

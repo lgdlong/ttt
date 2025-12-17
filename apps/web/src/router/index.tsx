@@ -10,6 +10,7 @@ const VideoDetailPage = lazy(() => import('~/pages/VideoDetailPage'))
 const TagPage = lazy(() => import('~/pages/TagPage'))
 const LoginPage = lazy(() => import('~/pages/LoginPage'))
 const RegisterPage = lazy(() => import('~/pages/RegisterPage'))
+const ProfilePage = lazy(() => import('~/pages/ProfilePage'))
 
 // Admin pages (lazy loaded)
 const AdminDashboard = lazy(() =>
@@ -170,10 +171,7 @@ const AppRouter: React.FC = () => {
             index
             element={
               <Suspense fallback={<PageLoader />}>
-                <Box sx={{ p: 4 }}>
-                  <Typography variant="h4">Profile</Typography>
-                  <Typography color="text.secondary">Coming soon...</Typography>
-                </Box>
+                <ProfilePage />
               </Suspense>
             }
           />

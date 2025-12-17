@@ -1,271 +1,86 @@
-import axios, { type AxiosError } from 'axios'
-import type {
-  LoginRequest,
-  SignupRequest,
-  AuthResponse,
-  UserResponse,
-  CreateUserRequest,
-  UpdateUserRequest,
-  ListUserRequest,
-  UserListResponse,
-  GoogleAuthURLResponse,
-  SessionResponse,
-} from '~/types/user'
-import type { ErrorResponse } from '~/types/video'
-
-// Auth API uses v1 endpoints (legacy)
-const API_URL = import.meta.env.VITE_API_URL + (import.meta.env.VITE_API_TAG || '/api') + '/v1'
+import { v1ApiClient } from '~/lib/apiClient'
+import type { UserResponse, LoginRequest, SignupRequest } from '~/types/user'
 
 /**
- * Auth & User API Service
- * Handles authentication and user management API calls
- * Uses cookies for token storage (httpOnly cookies set by backend)
- *
- * Version: V1 (legacy)
+ * Auth API Service
+ * Handles authentication-related API calls to the v1 backend
  */
 
-// Create axios instance with default config
-const apiClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true, // Send cookies with requests
-})
-
-// Response interceptor to handle errors and token expiration
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError<ErrorResponse>) => {
-    // TODO: TEMPORARILY DISABLED - Session and Refresh Token
-    // const originalRequest = error.config
-
-    // Handle 401 Unauthorized - try to refresh token
-    // if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-    //   originalRequest._retry = true
-
-    //   try {
-    //     // Attempt to refresh the token
-    //     await apiClient.post('/auth/refresh')
-    //     // Retry the original request
-    //     return apiClient(originalRequest)
-    //   } catch {
-    //     // Refresh failed, clear local state and redirect to login
-    //     localStorage.removeItem('user')
-    //     window.location.href = '/login'
-    //   }
-    // }
-
-    const errorMessage =
-      error.response?.data?.message || error.response?.data?.error || error.message
-    throw new Error(errorMessage)
-  }
-)
-
-// Extend AxiosRequestConfig to include _retry property
-declare module 'axios' {
-  export interface InternalAxiosRequestConfig {
-    _retry?: boolean
-  }
+export interface UpdateMePayload {
+  full_name?: string
+  email?: string
 }
 
-// ============ Authentication APIs ============
-
 /**
- * Login with username and password
- * POST /api/auth/login
- * Token is stored in httpOnly cookie by backend
+ * Fetch the currently authenticated user's profile
+ * GET /api/v1/auth/me
  */
-export async function login(req: LoginRequest): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>('/auth/login', req)
-  // Store user in localStorage for quick access
-  localStorage.setItem('user', JSON.stringify(response.data.user))
+export const getMe = async (): Promise<UserResponse> => {
+  const response = await v1ApiClient.get<UserResponse>('/auth/me')
   return response.data
 }
 
 /**
- * Signup new user account
- * POST /api/auth/signup
- * Token is stored in httpOnly cookie by backend
+ * Update the currently authenticated user's profile
+ * PATCH /api/v1/auth/me
  */
-export async function signup(req: SignupRequest): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>('/auth/signup', req)
-  // Store user in localStorage for quick access
-  localStorage.setItem('user', JSON.stringify(response.data.user))
+export const updateMe = async (payload: UpdateMePayload): Promise<UserResponse> => {
+  const response = await v1ApiClient.patch<UserResponse>('/auth/me', payload)
   return response.data
 }
 
 /**
- * Logout - clear session and cookies
- * POST /api/auth/logout
+ * Log in a user
+ * POST /api/v1/auth/login
  */
-export async function logout(): Promise<void> {
-  try {
-    await apiClient.post('/auth/logout')
-  } catch {
-    // Ignore errors on logout
-  } finally {
-    localStorage.removeItem('user')
-    window.location.href = '/login'
-  }
-}
-
-/**
- * Refresh access token using refresh token cookie
- * POST /api/auth/refresh
- * TODO: TEMPORARILY DISABLED - Session and Refresh Token
- */
-/*
-export async function refreshToken(): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>('/auth/refresh')
-  // Update user in localStorage
-  localStorage.setItem('user', JSON.stringify(response.data.user))
-  return response.data
-}
-*/
-
-/**
- * Get current user info from server
- * GET /api/auth/me
- */
-export async function getMe(): Promise<UserResponse> {
-  const response = await apiClient.get<UserResponse>('/auth/me')
-  // Update user in localStorage
-  localStorage.setItem('user', JSON.stringify(response.data))
+export const login = async (payload: LoginRequest): Promise<{ user: UserResponse }> => {
+  const response = await v1ApiClient.post<{ user: UserResponse }>('/auth/login', payload)
   return response.data
 }
 
 /**
- * Get current user from localStorage (sync)
+ * Sign up a new user
+ * POST /api/v1/auth/signup
  */
-export function getCurrentUser(): UserResponse | null {
-  const userStr = localStorage.getItem('user')
-  if (!userStr) return null
-  try {
-    return JSON.parse(userStr) as UserResponse
-  } catch {
-    return null
-  }
-}
-
-/**
- * Check if user is authenticated (has user data in localStorage)
- * Note: This is a quick check, actual auth is validated by server via cookies
- */
-export function isAuthenticated(): boolean {
-  return !!localStorage.getItem('user')
-}
-
-/**
- * Get active sessions
- * GET /api/auth/sessions
- */
-export async function getActiveSessions(): Promise<SessionResponse[]> {
-  const response = await apiClient.get<SessionResponse[]>('/auth/sessions')
+export const signup = async (payload: SignupRequest): Promise<{ user: UserResponse }> => {
+  const response = await v1ApiClient.post<{ user: UserResponse }>('/auth/signup', payload)
   return response.data
 }
 
-// ============ Google OAuth APIs ============
-
 /**
- * Get Google OAuth URL
- * GET /api/auth/google
+ * Log out the current user and revoke their refresh token
+ * POST /api/v1/auth/logout
  */
-export async function getGoogleAuthURL(): Promise<string> {
-  const response = await apiClient.get<GoogleAuthURLResponse>('/auth/google')
-  return response.data.url
+export const logout = async (): Promise<void> => {
+  await v1ApiClient.post('/auth/logout')
 }
 
 /**
- * Initiate Google OAuth login
- * Redirects to Google OAuth consent page
+ * Request a new access token using the refresh token (HttpOnly cookie)
+ * POST /api/v1/auth/refresh-token
  */
-export async function loginWithGoogle(): Promise<void> {
-  const url = await getGoogleAuthURL()
+export const refreshToken = async (): Promise<void> => {
+  await v1ApiClient.post('/auth/refresh')
+}
+
+
+
+/**
+
+ * Initiates Google OAuth flow by fetching the auth URL and redirecting.
+
+ * GET /api/v1/auth/google
+
+ */
+
+export const loginWithGoogle = async (): Promise<void> => {
+
+  const response = await v1ApiClient.get<{ url: string }>('/auth/google')
+
+  const { url } = response.data
+
+  // Redirect the browser to the Google auth page
+
   window.location.href = url
-}
 
-// ============ User Management APIs (Admin) ============
-
-/**
- * Create a new user (admin only)
- * POST /api/users
- */
-export async function createUser(req: CreateUserRequest): Promise<UserResponse> {
-  const response = await apiClient.post<UserResponse>('/users', req)
-  return response.data
-}
-
-/**
- * Get user by ID (admin only)
- * GET /api/users/:id
- */
-export async function getUserById(id: string): Promise<UserResponse> {
-  const response = await apiClient.get<UserResponse>(`/users/${id}`)
-  return response.data
-}
-
-/**
- * Update user (admin only)
- * PUT /api/users/:id
- */
-export async function updateUser(id: string, req: UpdateUserRequest): Promise<UserResponse> {
-  const response = await apiClient.put<UserResponse>(`/users/${id}`, req)
-  return response.data
-}
-
-/**
- * Delete user (soft delete, admin only)
- * DELETE /api/users/:id
- */
-export async function deleteUser(id: string): Promise<void> {
-  await apiClient.delete(`/users/${id}`)
-}
-
-/**
- * List users with pagination and filters (admin only)
- * GET /api/users
- */
-export async function listUsers(params?: ListUserRequest): Promise<UserListResponse> {
-  const response = await apiClient.get<UserListResponse>('/users', { params })
-  return response.data
-}
-
-// ============ Helper Functions ============
-
-/**
- * Get redirect path based on user role
- */
-export function getRedirectPathByRole(role: string): string {
-  switch (role) {
-    case 'admin':
-      return '/admin'
-    case 'mod':
-      return '/mod'
-    default:
-      return '/'
-  }
-}
-
-/**
- * Check if user has required role
- */
-export function hasRole(requiredRoles: string[]): boolean {
-  const user = getCurrentUser()
-  if (!user) return false
-  return requiredRoles.includes(user.role)
-}
-
-/**
- * Check if user is admin
- */
-export function isAdmin(): boolean {
-  return hasRole(['admin'])
-}
-
-/**
- * Check if user is moderator or admin
- */
-export function isModerator(): boolean {
-  return hasRole(['admin', 'mod'])
 }

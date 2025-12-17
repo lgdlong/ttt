@@ -41,9 +41,13 @@ const Header: React.FC = () => {
     navigate('/login')
   }
 
-  const handleAdminClick = () => {
+  const handlePanelClick = () => {
     handleMenuClose()
-    navigate('/admin')
+    if (user?.role === 'admin') {
+      navigate('/admin')
+    } else {
+      navigate('/mod')
+    }
   }
 
   const handleProfileClick = () => {
@@ -137,7 +141,7 @@ const Header: React.FC = () => {
 
             {/* Admin Panel - Only show if user is admin or mod */}
             {user?.role && (user.role === 'admin' || user.role === 'mod') && (
-              <MenuItem onClick={handleAdminClick}>
+              <MenuItem onClick={handlePanelClick}>
                 <ListItemIcon>
                   <AdminPanelSettingsIcon fontSize="small" color="primary" />
                 </ListItemIcon>

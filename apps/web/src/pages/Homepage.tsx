@@ -12,7 +12,7 @@ import {
 import { FilterBar, VideoCard } from '~/components/video'
 import VideoGridPagination from '~/components/video/VideoGridPagination'
 import { TagSidebar } from '~/components/sidebar'
-import { useVideosQuery, useTags } from '~/hooks'
+import { useVideosQuery } from '~/hooks'
 import type { VideoSort } from '~/types/video'
 
 /** Sidebar width constant */
@@ -39,18 +39,19 @@ const VideoGridSkeleton: React.FC = () => (
  * VideoGrid - Component that fetches and displays videos
  */
 interface VideoGridProps {
-  selectedTagId: string | null
+  hasTranscript?: boolean
+  isReviewed?: boolean
   sort?: VideoSort
   page: number
 }
 
-const VideoGrid: React.FC<VideoGridProps> = ({ selectedTagId, sort = 'newest', page }) => {
+const VideoGrid: React.FC<VideoGridProps> = ({ hasTranscript, isReviewed, sort = 'newest', page }) => {
   const { data, isLoading } = useVideosQuery({
     page,
     limit: 12,
     sort,
-    tag_id: selectedTagId ?? undefined,
-    has_transcript: true,
+    has_transcript: hasTranscript,
+    is_reviewed: isReviewed,
   })
 
   // Show loading spinner in the center if data is loading
@@ -80,25 +81,16 @@ const VideoGrid: React.FC<VideoGridProps> = ({ selectedTagId, sort = 'newest', p
 
 /**
  * Homepage Component
- * Main page showing video grid with tag filters and pagination
- * Following UI_Spec.md specifications
+ * Main page showing video grid with transcript filters and pagination
  */
 const Homepage: React.FC = () => {
-  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+  const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [sort] = useState<VideoSort>('newest')
   const [page, setPage] = useState(1)
-  const { data: tags = [] } = useTags()
 
-  // Create categories from tags - add "All" option
-  const categories = [
-    { id: null, name: 'Tất cả' },
-    ...tags.map((tag) => ({ id: tag.id, name: tag.name })),
-  ]
-
-  const handleCategoryChange = (categoryName: string) => {
-    const category = categories.find((c) => c.name === categoryName)
-    setSelectedTagId(category?.id ?? null)
-    setPage(1) // Reset to page 1 when category changes
+  const handleFilterChange = (filter: string) => {
+    setSelectedFilter(filter)
+    setPage(1) // Reset to page 1 when filter changes
   }
 
   const handlePageChange = (value: number) => {
@@ -107,7 +99,17 @@ const Homepage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const selectedCategoryName = categories.find((c) => c.id === selectedTagId)?.name || 'Tất cả'
+  // Convert string filter to boolean | undefined for API
+  const hasTranscript =
+    selectedFilter === 'has_transcript'
+      ? true
+      : selectedFilter === 'no_transcript'
+        ? false
+        : undefined // Only apply has_transcript filter when explicitly selected
+  const isReviewed =
+    selectedFilter === 'is_reviewed'
+      ? true
+      : undefined // Only apply is_reviewed filter when explicitly selected
 
   // Check if we should show sidebar (desktop only)
   const theme = useTheme()
@@ -143,20 +145,20 @@ const Homepage: React.FC = () => {
         <Container maxWidth="xl" sx={{ py: 3 }}>
           {/* Filter Bar */}
           <FilterBar
-            categories={categories.map((c) => c.name)}
-            selectedCategory={selectedCategoryName}
-            onCategoryChange={handleCategoryChange}
+            selectedFilter={selectedFilter}
+            onFilterChange={handleFilterChange}
           />
 
-          {/* Video Grid - No Suspense boundary needed, uses regular useQuery with loading state */}
-          <VideoGrid selectedTagId={selectedTagId} sort={sort} page={page} />
+          {/* Video Grid */}
+          <VideoGrid hasTranscript={hasTranscript} isReviewed={isReviewed} sort={sort} page={page} />
 
           {/* Pagination */}
           <Stack alignItems="center" sx={{ mt: 4 }}>
             <VideoGridPagination
               page={page}
               onPageChange={handlePageChange}
-              selectedTagId={selectedTagId}
+              hasTranscript={hasTranscript}
+              isReviewed={isReviewed}
               sort={sort}
             />
           </Stack>

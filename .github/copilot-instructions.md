@@ -26,6 +26,8 @@ Project này sử dụng custom skills trong `.github/skills/`. Copilot PHẢI t
 | Root Cause Tracing   | `skills/debugging/root-cause-tracing/`             | Trace errors to source                          |
 | Verification         | `skills/debugging/verification-before-completion/` | Verify before claiming done                     |
 | Sequential Thinking  | `skills/sequential-thinking/`                      | Complex problem decomposition                   |
+| Prompt Engineering   | `skills/prompt-engineering-patterns/`              | Optimizing prompts, improving LLM outputs       |
+| UX Designer          | `skills/ux-designer/`                              | Designing user experiences, wireframes, user flows |
 
 ## Critical Rules
 

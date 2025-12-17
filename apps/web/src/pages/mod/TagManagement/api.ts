@@ -1,4 +1,4 @@
-import axiosInstance from '~/lib/axios'
+import { v2ApiClient } from '~/lib/apiClient'
 import type {
   TagResponse,
   TagListResponse,
@@ -8,8 +8,8 @@ import type {
   UpdateTagApprovalRequest,
 } from '~/types/tag'
 
-// V2 API base path
-const API_BASE = '/v2/mod/tags'
+// V2 endpoints are relative to /api/v2
+const API_BASE = '/mod/tags'
 
 // ============================================================
 // Tag List & Search
@@ -30,7 +30,7 @@ interface FetchTagsResult {
 }
 
 export const fetchTags = async (params: FetchTagsParams): Promise<FetchTagsResult> => {
-  const response = await axiosInstance.get(API_BASE, {
+  const response = await v2ApiClient.get(API_BASE, {
     params: {
       page: params.page,
       limit: params.pageSize,
@@ -52,7 +52,7 @@ export const fetchTags = async (params: FetchTagsParams): Promise<FetchTagsResul
 }
 
 export const searchTags = async (query: string, limit = 10): Promise<TagResponse[]> => {
-  const response = await axiosInstance.get(`${API_BASE}/search`, {
+  const response = await v2ApiClient.get(`${API_BASE}/search`, {
     params: { q: query, limit },
   })
   // V2 API returns { status, data }
@@ -64,7 +64,7 @@ export const searchTags = async (query: string, limit = 10): Promise<TagResponse
 // ============================================================
 
 export const createTag = async (data: CreateTagRequest): Promise<TagResponse> => {
-  const response = await axiosInstance.post(API_BASE, data)
+  const response = await v2ApiClient.post(API_BASE, data)
   // V2 API returns { status, data } with TagResolveResponse format
   const tagData = response.data.data
   return {
@@ -75,7 +75,7 @@ export const createTag = async (data: CreateTagRequest): Promise<TagResponse> =>
 }
 
 export const getTag = async (id: string): Promise<TagResponse> => {
-  const response = await axiosInstance.get(`${API_BASE}/${id}`)
+  const response = await v2ApiClient.get(`${API_BASE}/${id}`)
   return response.data.data
 }
 
@@ -84,7 +84,7 @@ export const getTag = async (id: string): Promise<TagResponse> => {
 // ============================================================
 
 export const mergeTags = async (data: MergeTagsRequest): Promise<MergeTagsResponse> => {
-  const response = await axiosInstance.post(`${API_BASE}/merge`, data)
+  const response = await v2ApiClient.post(`${API_BASE}/merge`, data)
   return response.data.data
 }
 
@@ -99,8 +99,9 @@ export const updateTagApproval = async ({
   id: string
   data: UpdateTagApprovalRequest
 }): Promise<TagResponse> => {
-  const response = await axiosInstance.patch(`${API_BASE}/${id}/approve`, data)
+  const response = await v2ApiClient.patch(`${API_BASE}/${id}/approve`, data)
   return response.data.data
 }
 
 export type { FetchTagsResult, TagListResponse }
+

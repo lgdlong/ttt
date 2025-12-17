@@ -155,12 +155,21 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		userRole := role.(string)
+		userRole, ok := role.(domain.UserRole)
+		if !ok {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{
+				Error:   "Forbidden",
+				Message: "User role in context is of an unexpected type.",
+				Code:    http.StatusForbidden,
+			})
+			c.Abort()
+			return
+		}
 
 		// Check if user's role is in allowed roles
 		allowed := false
 		for _, r := range allowedRoles {
-			if userRole == r {
+			if string(userRole) == r {
 				allowed = true
 				break
 			}
@@ -192,7 +201,7 @@ func RequireMod() gin.HandlerFunc {
 
 // OptionalAuth middleware allows both authenticated and unauthenticated access
 // If a valid token is present, user info is set in context
-func OptionalAuth(userRepo domain.UserRepository) gin.HandlerFunc {
+func OptionalAuth(userRepo domain.UserRepository, sessionRepo domain.SessionRepository) gin.HandlerFunc {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "default-secret-change-in-production"
@@ -237,6 +246,24 @@ func OptionalAuth(userRepo domain.UserRepository) gin.HandlerFunc {
 		// Extract claims
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
+			c.Next()
+			return
+		}
+
+		// NEW: Validate session from JWT ID (jti)
+		sessionIDStr, ok := claims["jti"].(string)
+		if !ok {
+			c.Next()
+			return
+		}
+		sessionID, err := uuid.Parse(sessionIDStr)
+		if err != nil {
+			c.Next()
+			return
+		}
+
+		session, err := sessionRepo.GetByID(sessionID)
+		if err != nil || session.IsBlocked {
 			c.Next()
 			return
 		}

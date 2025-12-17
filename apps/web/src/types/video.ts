@@ -15,6 +15,7 @@ export interface ListVideoRequest {
   sort?: VideoSort
   tag_id?: string // UUID
   has_transcript?: boolean // Filter by transcript: true = only with, false = only without, undefined = all
+  is_reviewed?: boolean // Filter by review status: true = only reviewed, false = only not reviewed
   q?: string // Search query - searches in Title OR Tag Name
 }
 

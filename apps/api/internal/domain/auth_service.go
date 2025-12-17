@@ -8,8 +8,8 @@ import (
 )
 
 type AuthService interface {
-	Login(req dto.LoginRequest) (*dto.AuthResponse, error)
-	Signup(req dto.SignupRequest) (*dto.AuthResponse, error)
+	Login(req dto.LoginRequest, userAgent, clientIP string) (*dto.AuthResponse, error)
+	Signup(req dto.SignupRequest, userAgent, clientIP string) (*dto.AuthResponse, error)
 	VerifyToken(tokenString string) (*jwt.MapClaims, error)
 	RefreshToken(refreshToken string) (*dto.AuthResponse, error)
 	Logout(sessionID uuid.UUID) error
@@ -23,4 +23,8 @@ type AuthService interface {
 	// Session management
 	CreateSession(userID uuid.UUID, userAgent, clientIP string) (*Session, string, error)
 	ValidateSession(sessionID uuid.UUID) (*Session, error)
+	GetSessionByRefreshToken(token string) (*Session, error)
+
+	// Profile management
+	UpdateMe(userID uuid.UUID, req dto.UpdateMeRequest) (*dto.UserResponse, error)
 }

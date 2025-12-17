@@ -3,6 +3,7 @@ package service
 import (
 	"api/internal/domain"
 	"api/internal/dto"
+	"api/internal/helper"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -22,23 +24,16 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
-// GoogleUserInfo represents the user info from Google OAuth
-type GoogleUserInfo struct {
-	ID            string `json:"id"`
-	Email         string `json:"email"`
-	VerifiedEmail bool   `json:"verified_email"`
-	Name          string `json:"name"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Picture       string `json:"picture"`
-}
+const JWTDefaultExpiresIn = "24h"
 
 type authService struct {
-	userRepo          domain.UserRepository
-	socialAccountRepo domain.SocialAccountRepository
-	sessionRepo       domain.SessionRepository
-	jwtSecret         string
-	googleOAuthConfig *oauth2.Config
+	userRepo              domain.UserRepository
+	socialAccountRepo     domain.SocialAccountRepository
+	sessionRepo           domain.SessionRepository
+	jwtSecret             string
+	jwtExpiresIn          time.Duration
+	refreshTokenExpiresIn time.Duration // New field for refresh token expiration
+	googleOAuthConfig     *oauth2.Config
 }
 
 func NewAuthService(
@@ -48,17 +43,29 @@ func NewAuthService(
 ) domain.AuthService {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		env := os.Getenv("GO_ENV")
-		if env == "" {
-			env = os.Getenv("APP_ENV")
-		}
-		if env == "development" || env == "test" {
-			jwtSecret = "dev-insecure-secret" // Only allow fallback in dev/test
-			fmt.Println("[WARN] JWT_SECRET is unset, using insecure in-memory secret (dev/test only)")
-		} else {
-			// Fail fast in production/staging
-			panic("FATAL: JWT_SECRET environment variable is required in production. Refuse to start with insecure secret.")
-		}
+		// The application should NEVER run with a default secret.
+		// Fail fast if the secret is not configured.
+		panic("FATAL: JWT_SECRET is not set")
+	}
+
+	// Parse JWT expiration duration from environment
+	jwtExpiresInStr := os.Getenv("JWT_EXPIRES_IN")
+	if jwtExpiresInStr == "" {
+		jwtExpiresInStr = JWTDefaultExpiresIn // Default to 24 hours if not set
+	}
+	jwtExpiresIn, err := helper.ParseDurationWithDays(jwtExpiresInStr)
+	if err != nil {
+		panic(fmt.Sprintf("FATAL: Invalid JWT_EXPIRES_IN format: %v", err))
+	}
+
+	// Parse Refresh Token expiration duration from environment
+	refreshTokenExpiresInStr := os.Getenv("REFRESH_TOKEN_EXPIRES_IN")
+	if refreshTokenExpiresInStr == "" {
+		refreshTokenExpiresInStr = "720h" // Default to 30 days if not set
+	}
+	refreshTokenExpiresIn, err := helper.ParseDurationWithDays(refreshTokenExpiresInStr)
+	if err != nil {
+		panic(fmt.Sprintf("FATAL: Invalid REFRESH_TOKEN_EXPIRES_IN format: %v", err))
 	}
 
 	// Google OAuth config
@@ -81,16 +88,18 @@ func NewAuthService(
 	}
 
 	return &authService{
-		userRepo:          userRepo,
-		socialAccountRepo: socialAccountRepo,
-		sessionRepo:       sessionRepo,
-		jwtSecret:         jwtSecret,
-		googleOAuthConfig: googleOAuthConfig,
+		userRepo:              userRepo,
+		socialAccountRepo:     socialAccountRepo,
+		sessionRepo:           sessionRepo,
+		jwtSecret:             jwtSecret,
+		jwtExpiresIn:          jwtExpiresIn,
+		refreshTokenExpiresIn: refreshTokenExpiresIn, // Assign the parsed duration
+		googleOAuthConfig:     googleOAuthConfig,
 	}
 }
 
 // Login authenticates user with username and password
-func (s *authService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
+func (s *authService) Login(req dto.LoginRequest, userAgent, clientIP string) (*dto.AuthResponse, error) {
 	// Find user by username
 	user, err := s.userRepo.GetUserByUsername(req.Username)
 	if err != nil {
@@ -107,20 +116,27 @@ func (s *authService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 		return nil, errors.New("invalid username or password")
 	}
 
-	// Generate JWT token
-	token, err := s.generateToken(user)
+	// Create session
+	session, refreshToken, err := s.CreateSession(user.ID, userAgent, clientIP)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Generate JWT token with session ID
+	token, err := s.generateToken(user, session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
 	return &dto.AuthResponse{
-		User:  *s.toUserResponse(user),
-		Token: token,
+		User:         *s.toUserResponse(user),
+		Token:        token,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
 // Signup creates a new user account
-func (s *authService) Signup(req dto.SignupRequest) (*dto.AuthResponse, error) {
+func (s *authService) Signup(req dto.SignupRequest, userAgent, clientIP string) (*dto.AuthResponse, error) {
 	// Check if username already exists
 	if _, err := s.userRepo.GetUserByUsername(req.Username); err == nil {
 		return nil, errors.New("username already exists")
@@ -142,24 +158,34 @@ func (s *authService) Signup(req dto.SignupRequest) (*dto.AuthResponse, error) {
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		FullName:     req.FullName,     // Optional full name
+		FullName:     req.FullName,        // Optional full name
 		Role:         domain.UserRoleUser, // Default: user
-		IsActive:     true,             // Default: active
+		IsActive:     true,                // Default: active
 	}
 
 	if err := s.userRepo.CreateUser(user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// Generate JWT token
-	token, err := s.generateToken(user)
+	// Create session
+	session, refreshToken, err := s.CreateSession(user.ID, userAgent, clientIP)
+	if err != nil {
+		// Note: In a real-world scenario, you might want to handle the case
+		// where user creation succeeds but session creation fails (e.g., by rolling back the user creation).
+		// For this implementation, we'll return an error and the user will have to log in.
+		return nil, fmt.Errorf("failed to create session after signup: %w", err)
+	}
+
+	// Generate JWT token with session ID
+	token, err := s.generateToken(user, session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
 	return &dto.AuthResponse{
-		User:  *s.toUserResponse(user),
-		Token: token,
+		User:         *s.toUserResponse(user),
+		Token:        token,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
@@ -213,8 +239,8 @@ func (s *authService) RefreshToken(refreshToken string) (*dto.AuthResponse, erro
 		return nil, errors.New("account is deactivated")
 	}
 
-	// Generate new access token
-	token, err := s.generateToken(user)
+	// Generate new access token, linked to the existing session
+	token, err := s.generateToken(user, session.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -261,33 +287,41 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 
-	// Check if social account exists
-	socialAccount, err := s.socialAccountRepo.GetByProviderAndSocialID("google", googleUser.ID)
-	if err == nil {
-		// Social account exists, get user
-		user, err := s.userRepo.GetUserByID(socialAccount.UserID)
-		if err != nil {
-			return nil, errors.New("user not found")
-		}
-
-		// Check if user is active
+	// This is a helper function to reduce repetition
+	createAuthResponse := func(user *domain.User) (*dto.AuthResponse, error) {
 		if !user.IsActive {
 			return nil, errors.New("account is deactivated")
 		}
 
-		// Generate token
-		jwtToken, err := s.generateToken(user)
+		session, refreshToken, err := s.CreateSession(user.ID, userAgent, clientIP)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create session: %w", err)
+		}
+
+		jwtToken, err := s.generateToken(user, session.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate token: %w", err)
 		}
 
 		return &dto.AuthResponse{
-			User:  *s.toUserResponse(user),
-			Token: jwtToken,
+			User:         *s.toUserResponse(user),
+			Token:        jwtToken,
+			RefreshToken: refreshToken,
 		}, nil
 	}
 
-	// Social account doesn't exist, check if user with email exists
+	// Check if social account exists
+	socialAccount, err := s.socialAccountRepo.GetByProviderAndSocialID("google", googleUser.ID)
+	if err == nil {
+		// Social account exists, get user and create auth response
+		user, err := s.userRepo.GetUserByID(socialAccount.UserID)
+		if err != nil {
+			return nil, errors.New("user linked to social account not found")
+		}
+		return createAuthResponse(user)
+	}
+
+	// Social account doesn't exist, check if user with that email already exists
 	existingUser, err := s.userRepo.GetUserByEmail(googleUser.Email)
 	if err == nil {
 		// User exists, link social account
@@ -297,71 +331,53 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 			SocialID: googleUser.ID,
 			Email:    googleUser.Email,
 		}
-
 		if err := s.socialAccountRepo.Create(socialAccount); err != nil {
 			return nil, fmt.Errorf("failed to link social account: %w", err)
 		}
-
-		// Check if user is active
-		if !existingUser.IsActive {
-			return nil, errors.New("account is deactivated")
-		}
-
-		// Generate token
-		jwtToken, err := s.generateToken(existingUser)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate token: %w", err)
-		}
-
-		return &dto.AuthResponse{
-			User:  *s.toUserResponse(existingUser),
-			Token: jwtToken,
-		}, nil
+		return createAuthResponse(existingUser)
 	}
 
-	// Create new user
-	username := s.generateUsernameFromEmail(googleUser.Email)
+	// No existing user or social account, create a new user
 	newUser := &domain.User{
-		Username:     username,
+		Username:     s.generateUsernameFromEmail(googleUser.Email),
 		Email:        googleUser.Email,
 		PasswordHash: "", // No password for OAuth users
 		FullName:     googleUser.Name,
 		Role:         domain.UserRoleUser,
 		IsActive:     true,
 	}
-
 	if err := s.userRepo.CreateUser(newUser); err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("failed to create user from google auth: %w", err)
 	}
 
-	// Create social account link
+	// Link the new social account
 	socialAccount = &domain.SocialAccount{
 		UserID:   newUser.ID,
 		Provider: "google",
 		SocialID: googleUser.ID,
 		Email:    googleUser.Email,
 	}
-
 	if err := s.socialAccountRepo.Create(socialAccount); err != nil {
-		return nil, fmt.Errorf("failed to create social account: %w", err)
+		// Attempt to clean up the newly created user if linking fails
+		if err := s.userRepo.DeleteUser(newUser.ID); err != nil {
+			// Log lại để dev biết hệ thống đang bị rác dữ liệu
+			slog.Error("failed to cleanup user after social account link failure",
+				"user_id", newUser.ID.String(),
+				"error", err)
+		}
+		return nil, fmt.Errorf("failed to create social account link: %w", err)
 	}
 
-	// Generate token
-	jwtToken, err := s.generateToken(newUser)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate token: %w", err)
-	}
-
-	return &dto.AuthResponse{
-		User:  *s.toUserResponse(newUser),
-		Token: jwtToken,
-	}, nil
+	return createAuthResponse(newUser)
 }
 
 // CreateSession creates a new session for the user
 func (s *authService) CreateSession(userID uuid.UUID, userAgent, clientIP string) (*domain.Session, string, error) {
 	// Generate refresh token
-	refreshToken := s.generateRefreshToken()
+	refreshToken, err := s.generateRefreshToken()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
 
 	session := &domain.Session{
 		UserID:       userID,
@@ -369,7 +385,7 @@ func (s *authService) CreateSession(userID uuid.UUID, userAgent, clientIP string
 		UserAgent:    userAgent,
 		ClientIP:     clientIP,
 		IsBlocked:    false,
-		ExpiresAt:    time.Now().Add(time.Hour * 24 * 30), // 30 days
+		ExpiresAt:    time.Now().Add(s.refreshTokenExpiresIn),
 	}
 
 	if err := s.sessionRepo.Create(session); err != nil {
@@ -397,8 +413,13 @@ func (s *authService) ValidateSession(sessionID uuid.UUID) (*domain.Session, err
 	return session, nil
 }
 
+// GetSessionByRefreshToken retrieves a session by its refresh token
+func (s *authService) GetSessionByRefreshToken(token string) (*domain.Session, error) {
+	return s.sessionRepo.GetByRefreshToken(token)
+}
+
 // getGoogleUserInfo fetches user info from Google API
-func (s *authService) getGoogleUserInfo(accessToken string) (*GoogleUserInfo, error) {
+func (s *authService) getGoogleUserInfo(accessToken string) (*dto.GoogleUserInfo, error) {
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + accessToken)
 	if err != nil {
 		return nil, err
@@ -410,7 +431,7 @@ func (s *authService) getGoogleUserInfo(accessToken string) (*GoogleUserInfo, er
 		return nil, err
 	}
 
-	var userInfo GoogleUserInfo
+	var userInfo dto.GoogleUserInfo
 	if err := json.Unmarshal(body, &userInfo); err != nil {
 		return nil, err
 	}
@@ -419,14 +440,15 @@ func (s *authService) getGoogleUserInfo(accessToken string) (*GoogleUserInfo, er
 }
 
 // generateToken creates a JWT token for the user
-func (s *authService) generateToken(user *domain.User) (string, error) {
+func (s *authService) generateToken(user *domain.User, sessionID uuid.UUID) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id":  user.ID.String(),
 		"username": user.Username,
 		"email":    user.Email,
 		"role":     user.Role,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(), // 24 hours expiration (shorter for access token)
+		"exp":      time.Now().Add(s.jwtExpiresIn).Unix(),
 		"iat":      time.Now().Unix(),
+		"jti":      sessionID.String(), // JWT ID, linking the token to the session
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -439,10 +461,12 @@ func (s *authService) generateToken(user *domain.User) (string, error) {
 }
 
 // generateRefreshToken generates a secure random refresh token
-func (s *authService) generateRefreshToken() string {
+func (s *authService) generateRefreshToken() (string, error) {
 	b := make([]byte, 64)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to read random bytes: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // generateUsernameFromEmail creates a username from email
@@ -473,4 +497,45 @@ func (s *authService) toUserResponse(user *domain.User) *dto.UserResponse {
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}
+}
+
+// UpdateMe updates the currently authenticated user's profile
+func (s *authService) UpdateMe(userID uuid.UUID, req dto.UpdateMeRequest) (*dto.UserResponse, error) {
+	// Get current user
+	currentUser, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	updates := make(map[string]interface{})
+
+	if req.FullName != nil {
+		updates["full_name"] = *req.FullName
+	}
+
+	if req.Email != nil && *req.Email != currentUser.Email {
+		// Check if the new email is already taken
+		if _, err := s.userRepo.GetUserByEmail(*req.Email); err == nil {
+			return nil, errors.New("email is already in use")
+		}
+		updates["email"] = *req.Email
+	}
+
+	// If there are no updates, just return the current user
+	if len(updates) == 0 {
+		return s.toUserResponse(currentUser), nil
+	}
+
+	// Apply updates
+	if err := s.userRepo.UpdateUser(userID, updates); err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	// Fetch updated user to return
+	updatedUser, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, errors.New("failed to fetch updated user information")
+	}
+
+	return s.toUserResponse(updatedUser), nil
 }

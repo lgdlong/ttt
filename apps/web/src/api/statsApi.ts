@@ -1,4 +1,4 @@
-import axiosInstance from '~/lib/axios'
+import { v1ApiClient } from '~/lib/apiClient'
 
 /**
  * Stats API Types
@@ -19,20 +19,21 @@ export interface ModStatsResponse {
 
 /**
  * Get admin dashboard statistics
- * GET /api/v1/admin/stats (v1 - legacy)
+ * GET /api/v1/admin/stats
  * Requires admin role
  */
 export async function getAdminStats(): Promise<AdminStatsResponse> {
-  const response = await axiosInstance.get<AdminStatsResponse>('/v1/admin/stats')
+  const response = await v1ApiClient.get<AdminStatsResponse>('/admin/stats')
   return response.data
 }
 
 /**
  * Get moderator dashboard statistics
- * GET /api/v1/mod/stats (v1 - legacy)
+ * GET /api/v1/mod/stats
  * Requires mod or admin role
  */
 export async function getModStats(): Promise<ModStatsResponse> {
-  const response = await axiosInstance.get<ModStatsResponse>('/v1/mod/stats')
+  const response = await v1ApiClient.get<ModStatsResponse>('/mod/stats')
   return response.data
 }
+
