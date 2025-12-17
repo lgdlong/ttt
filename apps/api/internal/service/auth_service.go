@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -25,13 +26,13 @@ import (
 const JWTDefaultExpiresIn = "24h"
 
 type authService struct {
-	userRepo          domain.UserRepository
-	socialAccountRepo domain.SocialAccountRepository
-	sessionRepo       domain.SessionRepository
-	jwtSecret         string
-	jwtExpiresIn      time.Duration
+	userRepo              domain.UserRepository
+	socialAccountRepo     domain.SocialAccountRepository
+	sessionRepo           domain.SessionRepository
+	jwtSecret             string
+	jwtExpiresIn          time.Duration
 	refreshTokenExpiresIn time.Duration // New field for refresh token expiration
-	googleOAuthConfig *oauth2.Config
+	googleOAuthConfig     *oauth2.Config
 }
 
 func NewAuthService(
@@ -357,7 +358,10 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 	}
 	if err := s.socialAccountRepo.Create(socialAccount); err != nil {
 		// Attempt to clean up the newly created user if linking fails
-		s.userRepo.DeleteUser(newUser.ID)
+		if err := s.userRepo.DeleteUser(newUser.ID); err != nil {
+			// Log lại để dev biết hệ thống đang bị rác dữ liệu
+			slog.Error("Failed to cleanup user %v: %v", newUser.ID.String(), err)
+		}
 		return nil, fmt.Errorf("failed to create social account link: %w", err)
 	}
 
@@ -367,7 +371,10 @@ func (s *authService) HandleGoogleCallback(code string, userAgent, clientIP stri
 // CreateSession creates a new session for the user
 func (s *authService) CreateSession(userID uuid.UUID, userAgent, clientIP string) (*domain.Session, string, error) {
 	// Generate refresh token
-	refreshToken := s.generateRefreshToken()
+	refreshToken, err := s.generateRefreshToken()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
 
 	session := &domain.Session{
 		UserID:       userID,
@@ -451,10 +458,12 @@ func (s *authService) generateToken(user *domain.User, sessionID uuid.UUID) (str
 }
 
 // generateRefreshToken generates a secure random refresh token
-func (s *authService) generateRefreshToken() string {
+func (s *authService) generateRefreshToken() (string, error) {
 	b := make([]byte, 64)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to read random bytes: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // generateUsernameFromEmail creates a username from email
