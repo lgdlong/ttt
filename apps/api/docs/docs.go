@@ -164,6 +164,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/logout-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Logout the current user from all devices and invalidate all their sessions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User logout from all devices",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/me": {
             "get": {
                 "security": [
@@ -184,6 +212,87 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the currently authenticated user's profile information (full_name, email)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Update current user",
+                "parameters": [
+                    {
+                        "description": "Profile information to update",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateMeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "User not authenticated",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Email already in use",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Get a new access token using refresh token from cookie",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh access token",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
                     "401": {
@@ -1887,14 +1996,6 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 6
                 },
-                "role": {
-                    "type": "string",
-                    "enum": [
-                        "user",
-                        "admin",
-                        "mod"
-                    ]
-                },
                 "username": {
                     "type": "string",
                     "maxLength": 50,
@@ -2091,6 +2192,10 @@ const docTemplate = `{
                 "published_at": {
                     "type": "string"
                 },
+                "review_count": {
+                    "description": "Number of reviews",
+                    "type": "integer"
+                },
                 "tags": {
                     "type": "array",
                     "items": {
@@ -2266,6 +2371,13 @@ const docTemplate = `{
         "dto.TagResponse": {
             "type": "object",
             "properties": {
+                "aliases": {
+                    "description": "List of alias names for display",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "id": {
                     "type": "string"
                 },
@@ -2367,6 +2479,19 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpdateMeRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
         "dto.UpdateSegmentRequest": {
             "type": "object",
             "required": [
@@ -2403,20 +2528,9 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100
                 },
-                "is_active": {
-                    "type": "boolean"
-                },
                 "password": {
                     "type": "string",
                     "minLength": 6
-                },
-                "role": {
-                    "type": "string",
-                    "enum": [
-                        "user",
-                        "admin",
-                        "mod"
-                    ]
                 },
                 "username": {
                     "type": "string",

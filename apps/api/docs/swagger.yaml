@@ -92,12 +92,6 @@ definitions:
       password:
         minLength: 6
         type: string
-      role:
-        enum:
-        - user
-        - admin
-        - mod
-        type: string
       username:
         maxLength: 50
         minLength: 3
@@ -236,6 +230,9 @@ definitions:
         type: string
       published_at:
         type: string
+      review_count:
+        description: Number of reviews
+        type: integer
       tags:
         items:
           $ref: '#/definitions/dto.TagResponse'
@@ -362,6 +359,11 @@ definitions:
     type: object
   dto.TagResponse:
     properties:
+      aliases:
+        description: List of alias names for display
+        items:
+          type: string
+        type: array
       id:
         type: string
       is_approved:
@@ -428,6 +430,15 @@ definitions:
       video_title:
         type: string
     type: object
+  dto.UpdateMeRequest:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      full_name:
+        maxLength: 100
+        type: string
+    type: object
   dto.UpdateSegmentRequest:
     properties:
       end_time:
@@ -452,16 +463,8 @@ definitions:
       full_name:
         maxLength: 100
         type: string
-      is_active:
-        type: boolean
       password:
         minLength: 6
-        type: string
-      role:
-        enum:
-        - user
-        - admin
-        - mod
         type: string
       username:
         maxLength: 50
@@ -716,6 +719,24 @@ paths:
       summary: User logout
       tags:
       - Authentication
+  /auth/logout-all:
+    post:
+      description: Logout the current user from all devices and invalidate all their
+        sessions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: User logout from all devices
+      tags:
+      - Authentication
   /auth/me:
     get:
       description: Get the currently authenticated user's information
@@ -733,6 +754,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Get current user
+      tags:
+      - Authentication
+    patch:
+      consumes:
+      - application/json
+      description: Update the currently authenticated user's profile information (full_name,
+        email)
+      parameters:
+      - description: Profile information to update
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateMeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: User not authenticated
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Email already in use
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update current user
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      description: Get a new access token using refresh token from cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Refresh access token
       tags:
       - Authentication
   /auth/sessions:
