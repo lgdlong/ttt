@@ -71,7 +71,7 @@ class GeminiProvider(BaseLLMProvider):
                 self._configure_client(api_key)
                 
                 # Update generation config nếu cần
-                if temperature != 0.2 or max_tokens != 8192:
+                if temperature != DEFAULT_TEMPERATURE or max_tokens != MAX_OUTPUT_TOKENS:
                     self.generation_config = genai.types.GenerateContentConfig(
                         temperature=temperature,
                         max_output_tokens=max_tokens,
