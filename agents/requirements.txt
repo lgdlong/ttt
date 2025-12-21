@@ -1,0 +1,8 @@
+# Environment Variables
+python-dotenv==1.0.0
+
+# Google Gemini Official SDK (New package)
+google-genai>=0.1.0
+
+# OpenAI Official SDK
+openai>=1.12.0
