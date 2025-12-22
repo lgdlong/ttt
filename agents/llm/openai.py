@@ -6,7 +6,7 @@ Sử dụng official openai SDK
 # ========== PROVIDER CONFIGURATION ==========
 import os
 DEFAULT_TEMPERATURE = 0.2
-MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "16384"))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "30000"))
 MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "5"))
 RETRY_BASE_DELAY = float(os.getenv("OPENAI_RETRY_DELAY", "1.0"))  # seconds
 RETRY_JITTER_MAX = float(os.getenv("OPENAI_RETRY_JITTER", "0.5"))  # seconds
@@ -27,7 +27,6 @@ class OpenAIProvider(BaseLLMProvider):
     def __init__(self, api_keys: list[str], model_name: str = "gpt-4o-mini", base_url: Optional[str] = None):
         super().__init__(api_keys, model_name)
         self.base_url = base_url  # Custom base URL for third-party services
-        self.client = None
         self.max_retries = MAX_RETRIES
         self.retry_base_delay = RETRY_BASE_DELAY
         self.jitter_max = RETRY_JITTER_MAX
@@ -173,6 +172,4 @@ class OpenAIProvider(BaseLLMProvider):
     
     async def close(self):
         """Cleanup"""
-        if self.client:
-            await self.client.close()
-            self.client = None
+        pass

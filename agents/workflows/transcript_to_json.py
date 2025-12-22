@@ -9,6 +9,7 @@ import json
 import time
 from pathlib import Path
 from typing import Optional
+import anyio
 from llm.manager import llm_manager
 from utils import ContextOptimizer, get_logger
 
@@ -31,7 +32,7 @@ JSON_INDENT = 2
 
 # LLM Configuration
 DEFAULT_TEMPERATURE = 0.2
-MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "16384"))  # Load from env or default
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "30000"))  # Load from env or default
 # ============================================
 
 
@@ -44,7 +45,7 @@ logger = get_logger()
 
 # Load system prompt từ file
 def load_system_prompt() -> str:
-    """Load system prompt từ file instruction"""
+    """Load system prompt từ file instruction (synchronous for initialization)"""
     prompt_file = os.path.join(
         AGENTS_DIR,
         "prompts",
@@ -91,9 +92,9 @@ async def process_file(
     start_time = time.time()
     
     try:
-        # 1. Đọc file
-        with open(file_path, 'r', encoding=ENCODING) as f:
-            raw_content = f.read()
+        # 1. Đọc file async
+        async with await anyio.open_file(file_path, 'r', encoding=ENCODING) as f:
+            raw_content = await f.read()
         
         print(f"  📄 Input size: {len(raw_content)} chars")
         
@@ -125,8 +126,8 @@ async def process_file(
                 
                 # Save error for debugging
                 error_path = os.path.join(OUTPUT_DIR, file_name + ERROR_FILE_SUFFIX)
-                with open(error_path, 'w', encoding=ENCODING) as f:
-                    f.write(json_str)
+                async with await anyio.open_file(error_path, 'w', encoding=ENCODING) as f:
+                    await f.write(json_str)
                 
                 return {
                     "status": "error",
@@ -140,8 +141,8 @@ async def process_file(
             OUTPUT_DIR,
             file_name.replace(INPUT_FILE_EXT, OUTPUT_FILE_EXT)
         )
-        with open(output_path, 'w', encoding=ENCODING) as f:
-            json.dump(data, f, ensure_ascii=False, indent=JSON_INDENT)
+        async with await anyio.open_file(output_path, 'w', encoding=ENCODING) as f:
+            await f.write(json.dumps(data, ensure_ascii=False, indent=JSON_INDENT))
         
         duration = time.time() - start_time
         print(f"✅ Completed: {file_name} ({duration:.2f}s)")

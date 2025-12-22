@@ -6,7 +6,7 @@ Sử dụng official google-genai SDK
 # ========== PROVIDER CONFIGURATION ==========
 import os
 DEFAULT_TEMPERATURE = 0.2
-MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "16384"))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "30000"))
 MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "5"))
 RETRY_BASE_DELAY = float(os.getenv("GEMINI_RETRY_DELAY", "1.0"))  # seconds
 RETRY_JITTER_MAX = float(os.getenv("GEMINI_RETRY_JITTER", "0.5"))  # seconds
@@ -26,20 +26,14 @@ class GeminiProvider(BaseLLMProvider):
     
     def __init__(self, api_keys: list[str], model_name: str = "gemini-2.5-flash"):
         super().__init__(api_keys, model_name)
-        self.client = None
         self.max_retries = MAX_RETRIES
         self.retry_base_delay = RETRY_BASE_DELAY
         self.jitter_max = RETRY_JITTER_MAX
         self.logger = get_logger()
     
-    def _configure_client(self, api_key: str):
-        """Configure Gemini client với API key"""
-        self.client = genai.Client(api_key=api_key)
-        self.generation_config = genai.types.GenerateContentConfig(
-            temperature=DEFAULT_TEMPERATURE,
-            max_output_tokens=MAX_OUTPUT_TOKENS,
-            response_mime_type="application/json"
-        )
+    def _get_client(self, api_key: str):
+        """Tạo Gemini client với API key"""
+        return genai.Client(api_key=api_key)
     
     async def generate(
         self,
@@ -65,18 +59,15 @@ class GeminiProvider(BaseLLMProvider):
         
         for attempt in range(1, self.max_retries + 1):
             api_key = self.get_next_key()
+            client = self._get_client(api_key)
             
             try:
-                # Configure client với key hiện tại
-                self._configure_client(api_key)
-                
-                # Update generation config nếu cần
-                if temperature != DEFAULT_TEMPERATURE or max_tokens != MAX_OUTPUT_TOKENS:
-                    self.generation_config = genai.types.GenerateContentConfig(
-                        temperature=temperature,
-                        max_output_tokens=max_tokens,
-                        response_mime_type="application/json"
-                    )
+                # Configure generation config cục bộ
+                generation_config = genai.types.GenerateContentConfig(
+                    temperature=temperature,
+                    max_output_tokens=max_tokens,
+                    response_mime_type="application/json"
+                )
                 
                 # Add system instruction nếu có
                 if system_instruction:
@@ -86,10 +77,10 @@ class GeminiProvider(BaseLLMProvider):
                 
                 # Generate using new API
                 response = await asyncio.to_thread(
-                    self.client.models.generate_content,
+                    client.models.generate_content,
                     model=self.model_name,
                     contents=full_prompt,
-                    config=self.generation_config
+                    config=generation_config
                 )
                 
                 # Extract text from response
@@ -170,5 +161,5 @@ class GeminiProvider(BaseLLMProvider):
         raise Exception(f"Gemini: Đã thử {self.max_retries} lần nhưng thất bại")
     
     async def close(self):
-        """Cleanup (Gemini SDK không cần cleanup đặc biệt)"""
-        self.client = None
+        """Cleanup"""
+        pass
