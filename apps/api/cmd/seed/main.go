@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api/cmd/seed/function"
 	"api/internal/database"
 	"flag"
 	"log"
@@ -9,9 +10,10 @@ import (
 
 func main() {
 	// Định nghĩa các flags để chọn chạy cái gì
-	jsonFile := flag.String("json", "../../tsv_files/clean_videos.json", "Đường dẫn file JSON metadata video")
+	jsonFile := flag.String("json", "../../tsv_files/ttt_without_drugs_videos.json", "Đường dẫn file JSON metadata video")
 	tsvDir := flag.String("tsv", "../../tsv_files/ttt-3", "Thư mục chứa file TSV")
 	action := flag.String("action", "all", "Chọn action: videos, transcripts, all")
+	force := flag.Bool("force", false, "Ghi đè transcript nếu đã tồn tại")
 	flag.Parse()
 
 	// 1. Kết nối DB
@@ -30,7 +32,7 @@ func main() {
 		if _, err := os.Stat(*jsonFile); os.IsNotExist(err) {
 			log.Fatalf("File JSON không tồn tại: %s", *jsonFile)
 		}
-		err = ImportVideos(gormDB, *jsonFile)
+		err = function.ImportVideos(gormDB, *jsonFile)
 		if err != nil {
 			log.Fatalf("Lỗi Import Videos: %v", err)
 		}
@@ -41,7 +43,7 @@ func main() {
 		if _, err := os.Stat(*tsvDir); os.IsNotExist(err) {
 			log.Fatalf("Thư mục TSV không tồn tại: %s", *tsvDir)
 		}
-		err = ImportTranscripts(gormDB, *tsvDir)
+		err = function.ImportTranscripts(gormDB, *tsvDir, *force)
 		if err != nil {
 			log.Fatalf("Lỗi Import Transcripts: %v", err)
 		}

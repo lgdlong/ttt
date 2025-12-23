@@ -16,9 +16,13 @@ type Video struct {
 	ViewCount     int       `gorm:"default:0"`
 	ThumbnailURL  string    `gorm:"type:varchar(500)"`
 	HasTranscript bool      `gorm:"default:false;not null"` // TRUE nếu có ít nhất 1 segment
+	Summary       string    `gorm:"type:text"`              // New: LLM Summary
 
 	// Relationship 1-N: Subtitles
 	Segments []TranscriptSegment `gorm:"foreignKey:VideoID;constraint:OnDelete:CASCADE;"`
+
+	// Relationship 1-N: Chapters (Semantic)
+	Chapters []VideoChapter `gorm:"foreignKey:VideoID;constraint:OnDelete:CASCADE;"`
 
 	// Relationship N-N: CanonicalTags (GORM tự xử lý bảng trung gian video_canonical_tags)
 	CanonicalTags []CanonicalTag `gorm:"many2many:video_canonical_tags;"`

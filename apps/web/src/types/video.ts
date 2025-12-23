@@ -57,8 +57,17 @@ export interface TagResponse {
   aliases?: string[] // List of alias names for display
 }
 
+export interface ChapterResponse {
+  id: number
+  title: string
+  content: string
+  start_time: number
+}
+
 export interface VideoDetailResponse extends VideoCardResponse {
   tags: TagResponse[]
+  summary?: string
+  chapters?: ChapterResponse[]
 }
 
 export interface SegmentResponse {

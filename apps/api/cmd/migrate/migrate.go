@@ -89,13 +89,19 @@ func Migrate() error {
 		log.Println("✓ Orphan video_transcript_reviews cleaned")
 	}
 
-	// Migrate VideoTranscriptReview
-	if err := gormDB.AutoMigrate(&domain.VideoTranscriptReview{}); err != nil {
-		return fmt.Errorf("migration failed for VideoTranscriptReview: %w", err)
-	}
-	log.Println("✓ VideoTranscriptReview table migrated")
+        // Migrate VideoTranscriptReview
+        if err := gormDB.AutoMigrate(&domain.VideoTranscriptReview{}); err != nil {
+                return fmt.Errorf("migration failed for VideoTranscriptReview: %w", err)
+        }
+        log.Println("âœ“ VideoTranscriptReview table migrated")
 
-	// Migrate CanonicalTag (new canonical-alias architecture)
+        // Migrate VideoChapter (Semantic Chapters)
+        if err := gormDB.AutoMigrate(&domain.VideoChapter{}); err != nil {
+                return fmt.Errorf("migration failed for VideoChapter: %w", err)
+        }
+        log.Println("âœ“ VideoChapter table migrated")
+
+        // Migrate CanonicalTag (new canonical-alias architecture)
 	// First, drop old constraint if it exists (for idempotency)
 	gormDB.Exec("ALTER TABLE IF EXISTS canonical_tags DROP CONSTRAINT IF EXISTS uni_canonical_tags_slug")
 
@@ -289,49 +295,50 @@ func enableFTS(db *gorm.DB) error {
 // Rollback rolls back all migrations (drops all tables)
 // WARNING: This is destructive and only for development
 func Rollback() error {
-	db := database.New()
-	gormDB := db.GetGormDB()
+        db := database.New()
+        gormDB := db.GetGormDB()
 
-	log.Println("Rolling back all migrations...")
+        log.Println("Rolling back all migrations...")
 
-	// Drop all tables in reverse order of dependencies
-	if err := gormDB.Migrator().DropTable(
-		&domain.Session{},
-		&domain.SocialAccount{},
-		&domain.User{},
-		&domain.TranscriptSegment{},
-		&domain.Video{},
-		&domain.VideoTranscriptReview{},
-		&domain.TagAlias{},
-		&domain.CanonicalTag{},
-	).Error; err != nil {
-		return fmt.Errorf("rollback failed: %w", err)
-	}
+        // Drop all tables in reverse order of dependencies
+        if err := gormDB.Migrator().DropTable(
+                &domain.Session{},
+                &domain.SocialAccount{},
+                &domain.User{},
+                &domain.TranscriptSegment{},
+                &domain.VideoChapter{},
+                &domain.Video{},
+                &domain.VideoTranscriptReview{},
+                &domain.TagAlias{},
+                &domain.CanonicalTag{},
+        ).Error; err != nil {
+                return fmt.Errorf("rollback failed: %w", err)
+        }
 
-	log.Println("All tables dropped successfully!")
-	return nil
+        log.Println("All tables dropped successfully!")
+        return nil
 }
 
 // Status prints the current migration status
 func Status() error {
-	db := database.New()
-	gormDB := db.GetGormDB()
+        db := database.New()
+        gormDB := db.GetGormDB()
 
-	log.Println("\n=== Database Migration Status ===")
+        log.Println("\n=== Database Migration Status ===")
 
-	models := map[string]interface{}{
-		"users":                    &domain.User{},
-		"social_accounts":          &domain.SocialAccount{},
-		"sessions":                 &domain.Session{},
-		"videos":                   &domain.Video{},
-		"transcript_segments":      &domain.TranscriptSegment{},
-		"video_transcript_reviews": &domain.VideoTranscriptReview{},
-		"canonical_tags":           &domain.CanonicalTag{},
-		"tag_aliases":              &domain.TagAlias{},
-	}
+        models := map[string]interface{}{
+                "users":                    &domain.User{},
+                "social_accounts":          &domain.SocialAccount{},
+                "sessions":                 &domain.Session{},
+                "videos":                   &domain.Video{},
+                "transcript_segments":      &domain.TranscriptSegment{},
+                "video_chapters":           &domain.VideoChapter{},
+                "video_transcript_reviews": &domain.VideoTranscriptReview{},
+                "canonical_tags":           &domain.CanonicalTag{},
+                "tag_aliases":              &domain.TagAlias{},
+        }
 
-	for name, model := range models {
-		if gormDB.Migrator().HasTable(model) {
+        for name, model := range models {		if gormDB.Migrator().HasTable(model) {
 			log.Printf("✓ Table exists: %s", name)
 		} else {
 			log.Printf("✗ Table missing: %s", name)

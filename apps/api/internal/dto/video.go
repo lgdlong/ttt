@@ -27,7 +27,17 @@ type VideoCardResponse struct {
 // VideoDetailResponse - Full video data with tags
 type VideoDetailResponse struct {
 	VideoCardResponse
-	Tags []TagResponse `json:"tags"`
+	Tags     []TagResponse     `json:"tags"`
+	Summary  string            `json:"summary"`  // New: LLM Summary
+	Chapters []ChapterResponse `json:"chapters"` // New: LLM Segments
+}
+
+// ChapterResponse - Semantic chapter from LLM
+type ChapterResponse struct {
+	ID        uint   `json:"id"`
+	Title     string `json:"title"`
+	Content   string `json:"content"`
+	StartTime int    `json:"start_time"`
 }
 
 // TranscriptResponse - Full transcript with segments

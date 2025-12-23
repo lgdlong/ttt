@@ -37,12 +37,24 @@ func ToVideoDetailResponse(video *domain.Video, reviewCount int) *dto.VideoDetai
 		}
 	}
 
+	chapters := make([]dto.ChapterResponse, len(video.Chapters))
+	for i, ch := range video.Chapters {
+		chapters[i] = dto.ChapterResponse{
+			ID:        ch.ID,
+			Title:     ch.Title,
+			Content:   ch.Content,
+			StartTime: ch.StartTime,
+		}
+	}
+
 	cardResponse := ToVideoCardResponse(video)
 	cardResponse.ReviewCount = reviewCount
 
 	return &dto.VideoDetailResponse{
 		VideoCardResponse: cardResponse,
 		Tags:              tags,
+		Summary:           video.Summary,
+		Chapters:          chapters,
 	}
 }
 

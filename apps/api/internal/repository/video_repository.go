@@ -132,7 +132,9 @@ func (r *videoRepository) GetReviewCountsForVideos(videoIDs []uuid.UUID) (map[uu
 // GetVideoByID retrieves single video with tags
 func (r *videoRepository) GetVideoByID(id uuid.UUID) (*domain.Video, error) {
 	var video domain.Video
-	if err := r.db.Preload("CanonicalTags").First(&video, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("CanonicalTags").Preload("Chapters", func(db *gorm.DB) *gorm.DB {
+		return db.Order("chapter_order ASC")
+	}).First(&video, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &video, nil
@@ -141,7 +143,9 @@ func (r *videoRepository) GetVideoByID(id uuid.UUID) (*domain.Video, error) {
 // GetVideoByYoutubeID retrieves a video by YouTube ID
 func (r *videoRepository) GetVideoByYoutubeID(youtubeID string) (*domain.Video, error) {
 	var video domain.Video
-	if err := r.db.Preload("CanonicalTags").Where("youtube_id = ?", youtubeID).First(&video).Error; err != nil {
+	if err := r.db.Preload("CanonicalTags").Preload("Chapters", func(db *gorm.DB) *gorm.DB {
+		return db.Order("chapter_order ASC")
+	}).Where("youtube_id = ?", youtubeID).First(&video).Error; err != nil {
 		return nil, err
 	}
 	return &video, nil
