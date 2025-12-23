@@ -17,6 +17,8 @@ import ShareIcon from '@mui/icons-material/Share'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import { useVideoDetail, useVideoTranscript } from '~/hooks'
 import type { SegmentResponse, TranscriptParagraph } from '~/types/video'
+import { VideoSummary } from '~/components/video/VideoSummary'
+import { VideoChapters } from '~/components/video/VideoChapters'
 
 /**
  * Group transcript segments into paragraphs (9 segments each)
@@ -266,6 +268,10 @@ const VideoContent: React.FC = () => {
             ))}
           </Stack>
         )}
+
+        {/* Summary & Chapters */}
+        <VideoSummary summary={video.summary} />
+        <VideoChapters chapters={video.chapters} onSeek={handleSeek} />
       </Grid>
 
       {/* Right Column: Transcript */}
