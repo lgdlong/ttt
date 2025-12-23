@@ -23,7 +23,9 @@ agents/
 │
 ├── utils/                   # Utilities
 │   ├── __init__.py
-│   └── optimizer.py        # Context optimizer, JSON parser
+│   ├── optimizer.py        # Context optimizer, JSON parser
+│   ├── logger.py           # Structured logging
+│   └── update_json_start_time.py  # Fix tool for missing start_time fields
 │
 ├── workflows/               # Automation workflows
 │   ├── __init__.py
@@ -132,7 +134,19 @@ python main.py gemini
 python main.py openai
 ```
 
-### 4. Chạy tests
+## 🛠 Utilities
+
+### Cập nhật start_time cho JSON output
+
+Trong trường hợp các tệp JSON output thiếu trường `start_time` (cần thiết cho quá trình import vào database), bạn có thể sử dụng công cụ sau để bổ sung giá trị mặc định (`0`):
+
+```bash
+python agents/utils/update_json_start_time.py
+```
+
+Công cụ này sẽ quét thư mục `agents/resources/transcript_to_json/output` và cập nhật tất cả các tệp JSON có cấu trúc `transcript`.
+
+## 4. Chạy tests
 
 ```bash
 python test_providers.py
